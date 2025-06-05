@@ -212,7 +212,7 @@ public class PlayerListener implements Listener {
 
         // Rimuovi eventuali stelle del nether esistenti e aggiungine una nuova al slot 5
         player.getInventory().remove(Material.NETHER_STAR);
-        player.getInventory().setItem(5, compass);
+        player.getInventory().setItem(4, compass);
     }
 
     private void executeConsoleCommands(Player player, String worldKey) {
