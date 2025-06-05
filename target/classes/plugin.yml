@@ -1,0 +1,23 @@
+name: DestinityRaid
+version: '1.0'
+main: it.samuconfaa.destinityRaid.DestinityRaid
+api-version: '1.21'
+author: SamuConfaa
+description: Plugin per gestire raid e selezione mondi
+
+commands:
+  raid:
+    description: Comando principale del plugin
+    usage: /raid [reload|stats]
+    permission: raid.use
+
+permissions:
+  raid.use:
+    description: Permesso base per usare il plugin
+    default: true
+  raid.reload:
+    description: Permesso per ricaricare la configurazione
+    default: op
+  raid.stats:
+    description: Permesso per vedere le statistiche dei raid
+    default: true

@@ -1,0 +1,45 @@
+hub:
+  world_name: "world"
+
+# Messaggi del plugin
+messaggi:
+  no_permission: "&cNon hai il permesso per eseguire questo comando!"
+  reload_done: "&aConfig ricaricata con successo!"
+
+# Configurazione dei mondi
+worlds:
+  mondo1:
+    world_name: "world_nether"
+    display_name: "Nether Adventure"
+    spawn:
+      x: 0.5
+      y: 64.0
+      z: 0.5
+    exit:
+      x: 10.5
+      y: 64.0
+      z: 10.5
+
+  mondo2:
+    world_name: "world_the_end"
+    display_name: "End Challenge"
+    spawn:
+      x: 100.5
+      y: 50.0
+      z: 0.5
+    exit:
+      x: 120.5
+      y: 50.0
+      z: 20.5
+
+  mondo3:
+    world_name: "custom_world"
+    display_name: "Mondo Personalizzato"
+    spawn:
+      x: -50.5
+      y: 70.0
+      z: 200.5
+    exit:
+      x: -30.5
+      y: 70.0
+      z: 220.5
