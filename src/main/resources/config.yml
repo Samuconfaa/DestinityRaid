@@ -6,6 +6,12 @@ messaggi:
   no_permission: "&cNon hai il permesso per eseguire questo comando!"
   reload_done: "&aConfig ricaricata con successo!"
 
+# Comandi globali eseguiti dalla console per tutti i mondi al completamento di un raid
+# Placeholder disponibili: {player}, {world}, {uuid}
+global_console_commands:
+  - "say {player} ha completato un raid nel mondo {world}!"
+  - "give {player} minecraft:diamond 5"
+
 # Configurazione dei mondi
 worlds:
   mondo1:
@@ -19,6 +25,11 @@ worlds:
       x: 10.5
       y: 64.0
       z: 10.5
+    # Comandi specifici per questo mondo
+    # Placeholder disponibili: {player}, {world}, {uuid}
+    console_commands:
+      - "give {player} minecraft:netherite_ingot 1"
+      - "xp add {player} 100"
 
   mondo2:
     world_name: "world_the_end"
@@ -31,6 +42,10 @@ worlds:
       x: 120.5
       y: 50.0
       z: 20.5
+    console_commands:
+      - "give {player} minecraft:elytra 1"
+      - "give {player} minecraft:ender_pearl 16"
+      - "title {player} title {\"text\":\"End Conqueror!\",\"color\":\"purple\"}"
 
   mondo3:
     world_name: "custom_world"
@@ -43,3 +58,6 @@ worlds:
       x: -30.5
       y: 70.0
       z: 220.5
+    console_commands:
+      - "give {player} minecraft:golden_apple 3"
+      - "effect give {player} minecraft:regeneration 30 2"

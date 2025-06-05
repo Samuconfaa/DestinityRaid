@@ -45,7 +45,7 @@ public class PlayerListener implements Listener {
         }
 
         // Controlla se sta cliccando con la bussola (click destro o sinistro)
-        if (item != null && item.getType() == Material.COMPASS &&
+        if (item != null && item.getType() == Material.NETHER_STAR &&
                 (event.getAction() == Action.RIGHT_CLICK_AIR || event.getAction() == Action.RIGHT_CLICK_BLOCK ||
                         event.getAction() == Action.LEFT_CLICK_AIR || event.getAction() == Action.LEFT_CLICK_BLOCK)) {
 
@@ -53,7 +53,13 @@ public class PlayerListener implements Listener {
             if (meta != null && meta.hasDisplayName() &&
                     meta.getDisplayName().equals(ChatColor.GOLD + "Selettore Mondi")) {
 
+                // IMPORTANTE: Cancella l'evento per evitare il comportamento predefinito della bussola
                 event.setCancelled(true);
+
+                // Previeni qualsiasi altro comportamento
+                event.setUseInteractedBlock(org.bukkit.event.Event.Result.DENY);
+                event.setUseItemInHand(org.bukkit.event.Event.Result.DENY);
+
                 new WorldSelectorGUI(plugin).openGUI(player);
             }
         }
@@ -95,6 +101,9 @@ public class PlayerListener implements Listener {
                         plugin.getRaidStatsManager().endRaid(player, occupiedWorld);
                         plugin.getWorldManager().freeWorld(occupiedWorld);
 
+                        // Esegui i comandi della console se configurati
+                        executeConsoleCommands(player, occupiedWorld);
+
                         // Teletrasporta il giocatore al mondo hub
                         String hubWorldName = ConfigurationManager.getHubWorldName();
                         World hubWorld = plugin.getServer().getWorld(hubWorldName);
@@ -122,15 +131,50 @@ public class PlayerListener implements Listener {
     }
 
     private void giveCompass(Player player) {
-        ItemStack compass = new ItemStack(Material.COMPASS);
+        ItemStack compass = new ItemStack(Material.NETHER_STAR);
         ItemMeta meta = compass.getItemMeta();
         if (meta != null) {
             meta.setDisplayName(ChatColor.GOLD + "Selettore Mondi");
+            // Aggiungi una descrizione per rendere l'item più chiaro
+            meta.setLore(java.util.Arrays.asList(
+                    ChatColor.GRAY + "Clicca per aprire il menu",
+                    ChatColor.GRAY + "di selezione mondi"
+            ));
             compass.setItemMeta(meta);
         }
 
         // Rimuovi eventuali bussole esistenti e aggiungine una nuova
-        player.getInventory().remove(Material.COMPASS);
-        player.getInventory().addItem(compass);
+        player.getInventory().remove(Material.NETHER_STAR);
+        player.getInventory().setItem(5,compass);
+    }
+
+    private void executeConsoleCommands(Player player, String worldKey) {
+        // Esegui prima i comandi globali
+        java.util.List<String> globalCommands = ConfigurationManager.getGlobalConsoleCommands();
+        if (globalCommands != null && !globalCommands.isEmpty()) {
+            for (String command : globalCommands) {
+                String processedCommand = command
+                        .replace("{player}", player.getName())
+                        .replace("{world}", worldKey)
+                        .replace("{uuid}", player.getUniqueId().toString());
+
+                plugin.getServer().dispatchCommand(plugin.getServer().getConsoleSender(), processedCommand);
+                plugin.getLogger().info("Comando globale eseguito: " + processedCommand);
+            }
+        }
+
+        // Poi esegui i comandi specifici del mondo
+        java.util.List<String> worldCommands = ConfigurationManager.getConsoleCommands(worldKey);
+        if (worldCommands != null && !worldCommands.isEmpty()) {
+            for (String command : worldCommands) {
+                String processedCommand = command
+                        .replace("{player}", player.getName())
+                        .replace("{world}", worldKey)
+                        .replace("{uuid}", player.getUniqueId().toString());
+
+                plugin.getServer().dispatchCommand(plugin.getServer().getConsoleSender(), processedCommand);
+                plugin.getLogger().info("Comando mondo eseguito: " + processedCommand);
+            }
+        }
     }
 }

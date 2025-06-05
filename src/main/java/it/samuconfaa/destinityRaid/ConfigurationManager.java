@@ -7,6 +7,7 @@ import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.configuration.ConfigurationSection;
 import java.io.File;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -65,6 +66,23 @@ public class ConfigurationManager {
             }
         }
         return worlds;
+    }
+
+    // Nuovo metodo per ottenere i comandi console per un mondo specifico
+    public static List<String> getConsoleCommands(String worldKey) {
+        ConfigurationSection worldsSection = config.getConfigurationSection("worlds");
+        if (worldsSection != null) {
+            ConfigurationSection worldSection = worldsSection.getConfigurationSection(worldKey);
+            if (worldSection != null) {
+                return worldSection.getStringList("console_commands");
+            }
+        }
+        return null;
+    }
+
+    // Metodo per ottenere i comandi console globali (eseguiti per tutti i mondi)
+    public static List<String> getGlobalConsoleCommands() {
+        return config.getStringList("global_console_commands");
     }
 
     public static class WorldInfo {
