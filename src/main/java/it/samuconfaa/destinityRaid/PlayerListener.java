@@ -11,6 +11,8 @@ import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.event.player.PlayerDropItemEvent;
+import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.block.Action;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -44,7 +46,7 @@ public class PlayerListener implements Listener {
             return;
         }
 
-        // Controlla se sta cliccando con la bussola (click destro o sinistro)
+        // Controlla se sta cliccando con la stella del nether (click destro o sinistro)
         if (item != null && item.getType() == Material.NETHER_STAR &&
                 (event.getAction() == Action.RIGHT_CLICK_AIR || event.getAction() == Action.RIGHT_CLICK_BLOCK ||
                         event.getAction() == Action.LEFT_CLICK_AIR || event.getAction() == Action.LEFT_CLICK_BLOCK)) {
@@ -53,7 +55,7 @@ public class PlayerListener implements Listener {
             if (meta != null && meta.hasDisplayName() &&
                     meta.getDisplayName().equals(ChatColor.GOLD + "Selettore Mondi")) {
 
-                // IMPORTANTE: Cancella l'evento per evitare il comportamento predefinito della bussola
+                // IMPORTANTE: Cancella l'evento per evitare il comportamento predefinito
                 event.setCancelled(true);
 
                 // Previeni qualsiasi altro comportamento
@@ -97,22 +99,15 @@ public class PlayerListener implements Listener {
                             Math.abs(blockBelow.getY() - exitY) <= 1 &&
                             Math.abs(blockBelow.getZ() - exitZ) <= 1) {
 
-                        // Fine del raid
+                        // Fine del raid - gestisci tutto il party
                         plugin.getRaidStatsManager().endRaid(player, occupiedWorld);
                         plugin.getWorldManager().freeWorld(occupiedWorld);
 
                         // Esegui i comandi della console se configurati
                         executeConsoleCommands(player, occupiedWorld);
 
-                        // Teletrasporta il giocatore al mondo hub
-                        String hubWorldName = ConfigurationManager.getHubWorldName();
-                        World hubWorld = plugin.getServer().getWorld(hubWorldName);
-                        if (hubWorld != null) {
-                            Location hubSpawn = hubWorld.getSpawnLocation();
-                            player.teleport(hubSpawn);
-                            player.sendMessage(ChatColor.GREEN + "Hai completato il raid! Sei tornato al mondo hub!");
-                            giveCompass(player);
-                        }
+                        // Teletrasporta tutti i membri del party al mondo hub
+                        teleportPartyToHub(player);
                     }
                 }
             }
@@ -130,6 +125,78 @@ public class PlayerListener implements Listener {
         }
     }
 
+    // Previeni il drop della Nether Star
+    @EventHandler
+    public void onPlayerDropItem(PlayerDropItemEvent event) {
+        Player player = event.getPlayer();
+        ItemStack droppedItem = event.getItemDrop().getItemStack();
+
+        // Controlla se è nel mondo hub
+        String hubWorldName = ConfigurationManager.getHubWorldName();
+        if (!player.getWorld().getName().equals(hubWorldName)) {
+            return;
+        }
+
+        // Controlla se sta droppando la Nether Star del selettore
+        if (droppedItem.getType() == Material.NETHER_STAR &&
+                droppedItem.hasItemMeta() &&
+                droppedItem.getItemMeta().hasDisplayName() &&
+                droppedItem.getItemMeta().getDisplayName().equals(ChatColor.GOLD + "Selettore Mondi")) {
+
+            event.setCancelled(true);
+            player.sendMessage(ChatColor.RED + "Non puoi droppare il selettore mondi!");
+        }
+    }
+
+    // Previeni lo spostamento della Nether Star dall'inventario
+    @EventHandler
+    public void onInventoryClick(InventoryClickEvent event) {
+        if (!(event.getWhoClicked() instanceof Player)) {
+            return;
+        }
+
+        Player player = (Player) event.getWhoClicked();
+
+        // Controlla se è nel mondo hub
+        String hubWorldName = ConfigurationManager.getHubWorldName();
+        if (!player.getWorld().getName().equals(hubWorldName)) {
+            return;
+        }
+
+        // Se sta cliccando su una GUI del plugin, ignora questo controllo
+        if (event.getView().getTitle().equals(ChatColor.DARK_PURPLE + "Seleziona Mondo")) {
+            return;
+        }
+
+        ItemStack clickedItem = event.getCurrentItem();
+        ItemStack cursorItem = event.getCursor();
+
+        // Controlla se sta tentando di spostare la Nether Star dal slot 5
+        if (event.getSlot() == 5 && clickedItem != null &&
+                clickedItem.getType() == Material.NETHER_STAR &&
+                clickedItem.hasItemMeta() &&
+                clickedItem.getItemMeta().hasDisplayName() &&
+                clickedItem.getItemMeta().getDisplayName().equals(ChatColor.GOLD + "Selettore Mondi")) {
+
+            event.setCancelled(true);
+            player.sendMessage(ChatColor.RED + "Non puoi spostare il selettore mondi!");
+            return;
+        }
+
+        // Controlla se sta tentando di mettere qualcosa nel slot 5 quando c'è già la Nether Star
+        if (event.getSlot() == 5 && cursorItem != null && !cursorItem.getType().isAir()) {
+            ItemStack slotItem = player.getInventory().getItem(5);
+            if (slotItem != null && slotItem.getType() == Material.NETHER_STAR &&
+                    slotItem.hasItemMeta() &&
+                    slotItem.getItemMeta().hasDisplayName() &&
+                    slotItem.getItemMeta().getDisplayName().equals(ChatColor.GOLD + "Selettore Mondi")) {
+
+                event.setCancelled(true);
+                player.sendMessage(ChatColor.RED + "Non puoi sostituire il selettore mondi!");
+            }
+        }
+    }
+
     private void giveCompass(Player player) {
         ItemStack compass = new ItemStack(Material.NETHER_STAR);
         ItemMeta meta = compass.getItemMeta();
@@ -143,9 +210,9 @@ public class PlayerListener implements Listener {
             compass.setItemMeta(meta);
         }
 
-        // Rimuovi eventuali bussole esistenti e aggiungine una nuova
+        // Rimuovi eventuali stelle del nether esistenti e aggiungine una nuova al slot 5
         player.getInventory().remove(Material.NETHER_STAR);
-        player.getInventory().setItem(5,compass);
+        player.getInventory().setItem(5, compass);
     }
 
     private void executeConsoleCommands(Player player, String worldKey) {
@@ -175,6 +242,26 @@ public class PlayerListener implements Listener {
                 plugin.getServer().dispatchCommand(plugin.getServer().getConsoleSender(), processedCommand);
                 plugin.getLogger().info("Comando mondo eseguito: " + processedCommand);
             }
+        }
+    }
+
+    private void teleportPartyToHub(Player completedPlayer) {
+        String hubWorldName = ConfigurationManager.getHubWorldName();
+        World hubWorld = plugin.getServer().getWorld(hubWorldName);
+        if (hubWorld == null) {
+            completedPlayer.sendMessage(ChatColor.RED + "Errore: Mondo hub non trovato!");
+            return;
+        }
+
+        Location hubSpawn = hubWorld.getSpawnLocation();
+
+        // Ottieni tutti i membri del party e teletrasportali
+        java.util.List<Player> partyMembers = plugin.getPartyManager().getPartyMembers(completedPlayer);
+
+        for (Player member : partyMembers) {
+            member.teleport(hubSpawn);
+            member.sendMessage(ChatColor.GREEN + "Raid completato! Siete tornati al mondo hub!");
+            giveCompass(member);
         }
     }
 }

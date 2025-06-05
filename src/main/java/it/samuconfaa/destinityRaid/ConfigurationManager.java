@@ -38,6 +38,40 @@ public class ConfigurationManager {
         return config.getString("messaggi.reload_done", "&aConfig ricaricata con successo!");
     }
 
+    // Metodi per i messaggi delle party
+    public static String getPartyNotFoundMessage() {
+        return config.getString("messaggi.party_not_found", "&cNon sei in una party o la party non è stata trovata!");
+    }
+
+    public static String getPartyTooSmallMessage() {
+        return config.getString("messaggi.party_too_small", "&cLa tua party deve avere almeno {min} membri per iniziare un raid!");
+    }
+
+    public static String getPartyTooBigMessage() {
+        return config.getString("messaggi.party_too_big", "&cLa tua party ha troppi membri! Massimo {max} membri per raid.");
+    }
+
+    public static String getNotPartyLeaderMessage() {
+        return config.getString("messaggi.not_party_leader", "&cSolo il leader della party può iniziare un raid!");
+    }
+
+    public static String getPartyMembersNotOnlineMessage() {
+        return config.getString("messaggi.party_members_not_online", "&cTutti i membri della party devono essere online per iniziare un raid!");
+    }
+
+    // Metodi per la configurazione delle party
+    public static int getPartyMinMembers() {
+        return config.getInt("party.min_members", 2);
+    }
+
+    public static int getPartyMaxMembers() {
+        return config.getInt("party.max_members", 6);
+    }
+
+    public static boolean isRequirePartyLeader() {
+        return config.getBoolean("party.require_leader", true);
+    }
+
     public static String getHubWorldName() {
         return config.getString("hub.world_name", "world");
     }

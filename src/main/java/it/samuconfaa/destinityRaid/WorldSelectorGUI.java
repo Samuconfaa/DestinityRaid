@@ -13,6 +13,7 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
+import java.util.List;
 import java.util.Map;
 
 public class WorldSelectorGUI implements Listener {
@@ -76,6 +77,14 @@ public class WorldSelectorGUI implements Listener {
             }
 
             if (clickedItem.getType() == Material.GREEN_WOOL) {
+                // Validazione party prima di permettere l'accesso
+                String validationError = plugin.getPartyManager().validatePartyForRaid(player);
+                if (validationError != null) {
+                    player.sendMessage(validationError);
+                    player.closeInventory();
+                    return;
+                }
+
                 String worldDisplayName = ChatColor.stripColor(clickedItem.getItemMeta().getDisplayName());
 
                 // Trova il mondo corrispondente
@@ -101,11 +110,23 @@ public class WorldSelectorGUI implements Listener {
         }
 
         Location spawnLocation = new Location(world, worldInfo.getSpawnX(), worldInfo.getSpawnY(), worldInfo.getSpawnZ());
-        player.teleport(spawnLocation);
 
+        // Ottieni tutti i membri del party
+        List<Player> partyMembers = plugin.getPartyManager().getPartyMembers(player);
+
+        // Teletrasporta tutti i membri del party
+        for (Player member : partyMembers) {
+            member.teleport(spawnLocation);
+            member.sendMessage(ChatColor.GREEN + "Benvenuto nel mondo: " + worldInfo.getDisplayName());
+            member.sendMessage(ChatColor.YELLOW + "Trova il blocco d'oro per completare il raid!");
+        }
+
+        // Occupa il mondo con il player che ha avviato il raid
         plugin.getWorldManager().occupyWorld(worldKey, player);
         plugin.getRaidStatsManager().startRaid(player, worldKey);
-        player.sendMessage(ChatColor.GREEN + "Benvenuto nel mondo: " + worldInfo.getDisplayName());
-        player.sendMessage(ChatColor.YELLOW + "Trova il blocco d'oro per completare il raid!");
+
+        // Invia messaggio di conferma al party
+        String partyMessage = ChatColor.GREEN + "Raid iniziato nel mondo: " + worldInfo.getDisplayName();
+        plugin.getPartyManager().sendMessageToParty(player, partyMessage);
     }
 }

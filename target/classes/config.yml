@@ -5,6 +5,17 @@ hub:
 messaggi:
   no_permission: "&cNon hai il permesso per eseguire questo comando!"
   reload_done: "&aConfig ricaricata con successo!"
+  party_not_found: "&cNon sei in una party o la party non è stata trovata!"
+  party_too_small: "&cLa tua party deve avere almeno {min} membri per iniziare un raid!"
+  party_too_big: "&cLa tua party ha troppi membri! Massimo {max} membri per raid."
+  not_party_leader: "&cSolo il leader della party può iniziare un raid!"
+  party_members_not_online: "&cTutti i membri della party devono essere online per iniziare un raid!"
+
+# Configurazione party
+party:
+  min_members: 2
+  max_members: 6
+  require_leader: true  # Solo il leader può iniziare un raid
 
 # Comandi globali eseguiti dalla console per tutti i mondi al completamento di un raid
 # Placeholder disponibili: {player}, {world}, {uuid}
