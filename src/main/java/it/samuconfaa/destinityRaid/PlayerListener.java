@@ -83,7 +83,9 @@ public class PlayerListener implements Listener {
         // Controlla se il blocco sotto i piedi è oro
         Location blockBelow = to.clone().subtract(0, 1, 0);
         if (blockBelow.getBlock().getType() == Material.GOLD_BLOCK) {
-            String occupiedWorld = plugin.getWorldManager().getOccupiedWorldByPlayer(player.getUniqueId());
+            // NUOVO: Controlla se il giocatore è in un mondo che è occupato dal suo party
+            String occupiedWorld = findOccupiedWorldByPartyMember(player);
+
             if (occupiedWorld != null) {
                 // Verifica se è il giusto blocco d'oro per questo mondo
                 Map<String, ConfigurationManager.WorldInfo> worlds = ConfigurationManager.getWorlds();
@@ -99,15 +101,19 @@ public class PlayerListener implements Listener {
                             Math.abs(blockBelow.getY() - exitY) <= 1 &&
                             Math.abs(blockBelow.getZ() - exitZ) <= 1) {
 
-                        // Fine del raid - gestisci tutto il party
-                        plugin.getRaidStatsManager().endRaid(player, occupiedWorld);
-                        plugin.getWorldManager().freeWorld(occupiedWorld);
+                        // Ottieni il leader del party (chi ha occupato il mondo)
+                        Player partyLeader = getPartyLeaderForWorld(occupiedWorld);
+                        if (partyLeader != null) {
+                            // Fine del raid - gestisci tutto il party
+                            plugin.getRaidStatsManager().endRaid(partyLeader, occupiedWorld);
+                            plugin.getWorldManager().freeWorld(occupiedWorld);
 
-                        // Esegui i comandi della console se configurati
-                        executeConsoleCommands(player, occupiedWorld);
+                            // Esegui i comandi della console se configurati
+                            executeConsoleCommands(partyLeader, occupiedWorld);
 
-                        // Teletrasporta tutti i membri del party al mondo hub
-                        teleportPartyToHub(player);
+                            // Teletrasporta tutti i membri del party al mondo hub
+                            teleportPartyToHub(partyLeader);
+                        }
                     }
                 }
             }
@@ -195,6 +201,49 @@ public class PlayerListener implements Listener {
                 player.sendMessage(ChatColor.RED + "Non puoi sostituire il selettore mondi!");
             }
         }
+    }
+
+    // NUOVO METODO: Trova il mondo occupato da qualsiasi membro del party del giocatore
+    private String findOccupiedWorldByPartyMember(Player player) {
+        // Prima controlla se il giocatore stesso ha occupato un mondo
+        String occupiedWorld = plugin.getWorldManager().getOccupiedWorldByPlayer(player.getUniqueId());
+        if (occupiedWorld != null) {
+            return occupiedWorld;
+        }
+
+        // Se Parties non è abilitato, non può essere membro di nessun party
+        if (!plugin.getPartyManager().isPartiesEnabled()) {
+            return null;
+        }
+
+        // Ottieni tutti i membri del party del giocatore
+        java.util.List<Player> partyMembers = plugin.getPartyManager().getPartyMembers(player);
+
+        // Controlla se qualche membro del party ha occupato un mondo
+        for (Player member : partyMembers) {
+            if (member != null && !member.equals(player)) {
+                occupiedWorld = plugin.getWorldManager().getOccupiedWorldByPlayer(member.getUniqueId());
+                if (occupiedWorld != null) {
+                    // Verifica che il giocatore sia nello stesso mondo del mondo occupato
+                    Map<String, ConfigurationManager.WorldInfo> worlds = ConfigurationManager.getWorlds();
+                    ConfigurationManager.WorldInfo worldInfo = worlds.get(occupiedWorld);
+                    if (worldInfo != null && player.getWorld().getName().equals(worldInfo.getWorldName())) {
+                        return occupiedWorld;
+                    }
+                }
+            }
+        }
+
+        return null;
+    }
+
+    // NUOVO METODO: Ottieni il leader del party che ha occupato il mondo
+    private Player getPartyLeaderForWorld(String worldKey) {
+        java.util.UUID occupantUUID = plugin.getWorldManager().getWorldOccupant(worldKey);
+        if (occupantUUID != null) {
+            return org.bukkit.Bukkit.getPlayer(occupantUUID);
+        }
+        return null;
     }
 
     private void giveCompass(Player player) {
