@@ -93,6 +93,12 @@ public class KitManager {
     }
 
     public void giveKit(Player player, String kitId) {
+        // Se il kit è "default" e il kit dal config è abilitato, usa quello
+        if (kitId.equals("default") && ConfigurationManager.isDefaultKitEnabled()) {
+            giveDefaultKitFromConfig(player);
+            return;
+        }
+
         ConfigurationSection kitSection = kitsConfig.getConfigurationSection("kits." + kitId);
         if (kitSection == null) {
             player.sendMessage(ChatColor.RED + "Kit non trovato!");
@@ -121,6 +127,56 @@ public class KitManager {
 
         String displayName = kitSection.getString("display_name", kitId);
         player.sendMessage(ChatColor.GREEN + "Kit " + displayName + " equipaggiato!");
+    }
+
+    private void giveDefaultKitFromConfig(Player player) {
+        PlayerInventory inventory = player.getInventory();
+
+        // Pulisci l'inventario prima di dare il kit
+        inventory.clear();
+        inventory.setArmorContents(new ItemStack[4]);
+
+        // Equipaggia l'armatura dal config
+        Map<String, String> armorPieces = ConfigurationManager.getDefaultKitArmor();
+        for (Map.Entry<String, String> entry : armorPieces.entrySet()) {
+            if (entry.getValue() != null && !entry.getValue().isEmpty()) {
+                ItemStack armorPiece = parseItemString(entry.getValue());
+                if (armorPiece != null) {
+                    equipArmorByType(player, armorPiece, entry.getKey());
+                }
+            }
+        }
+
+        // Aggiungi gli oggetti dall'inventario
+        List<String> items = ConfigurationManager.getDefaultKitItems();
+        for (String itemString : items) {
+            ItemStack item = parseItemString(itemString);
+            if (item != null) {
+                inventory.addItem(item);
+            }
+        }
+
+        String displayName = ConfigurationManager.getDefaultKitDisplayName();
+        player.sendMessage(ChatColor.GREEN + "Kit " + displayName + " equipaggiato!");
+    }
+
+    private void equipArmorByType(Player player, ItemStack armor, String type) {
+        PlayerInventory inventory = player.getInventory();
+
+        switch (type.toLowerCase()) {
+            case "helmet":
+                inventory.setHelmet(armor);
+                break;
+            case "chestplate":
+                inventory.setChestplate(armor);
+                break;
+            case "leggings":
+                inventory.setLeggings(armor);
+                break;
+            case "boots":
+                inventory.setBoots(armor);
+                break;
+        }
     }
 
     private ItemStack parseItemString(String itemString) {
@@ -184,7 +240,8 @@ public class KitManager {
     }
 
     public void setPlayerKit(Player player, String kitId) {
-        if (!kitExists(kitId)) {
+        // Controlla se il kit esiste (incluso il kit "default")
+        if (!kitExists(kitId) && !kitId.equals("default")) {
             player.sendMessage(ChatColor.RED + "Kit non esistente!");
             return;
         }
@@ -199,13 +256,23 @@ public class KitManager {
     public String getPlayerKit(Player player) {
         String kit = playerSelectedKits.get(player.getUniqueId());
         if (kit == null) {
-            // Restituisci il kit di default
+            // Se il kit dal config è abilitato, restituisci "default"
+            if (ConfigurationManager.isDefaultKitEnabled()) {
+                return "default";
+            }
+            // Altrimenti restituisci il kit di default dai file
             return getDefaultKit();
         }
         return kit;
     }
 
     public String getDefaultKit() {
+        // Se il kit dal config è abilitato, usa quello
+        if (ConfigurationManager.isDefaultKitEnabled()) {
+            return "default";
+        }
+
+        // Altrimenti cerca nei kit salvati
         ConfigurationSection kitsSection = kitsConfig.getConfigurationSection("kits");
         if (kitsSection != null) {
             for (String kitId : kitsSection.getKeys(false)) {
@@ -218,16 +285,36 @@ public class KitManager {
     }
 
     public boolean kitExists(String kitId) {
+        // Il kit "default" esiste sempre se abilitato nel config
+        if (kitId.equals("default") && ConfigurationManager.isDefaultKitEnabled()) {
+            return true;
+        }
         return kitsConfig.contains("kits." + kitId);
     }
 
     public String getKitDisplayName(String kitId) {
+        // Se è il kit default dal config
+        if (kitId.equals("default") && ConfigurationManager.isDefaultKitEnabled()) {
+            return ConfigurationManager.getDefaultKitDisplayName();
+        }
         return kitsConfig.getString("kits." + kitId + ".display_name", kitId);
     }
 
     public Set<String> getAvailableKits() {
+        Set<String> kits = new HashSet<>();
+
+        // Aggiungi il kit default se abilitato
+        if (ConfigurationManager.isDefaultKitEnabled()) {
+            kits.add("default");
+        }
+
+        // Aggiungi i kit dal file kits.yml
         ConfigurationSection kitsSection = kitsConfig.getConfigurationSection("kits");
-        return kitsSection != null ? kitsSection.getKeys(false) : new HashSet<>();
+        if (kitsSection != null) {
+            kits.addAll(kitsSection.getKeys(false));
+        }
+
+        return kits;
     }
 
     public void savePlayerKit(Player player, String kitName) {

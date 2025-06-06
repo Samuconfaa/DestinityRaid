@@ -76,6 +76,33 @@ public class ConfigurationManager {
         return config.getString("hub.world_name", "world");
     }
 
+    // Metodi per il kit predefinito
+    public static boolean isDefaultKitEnabled() {
+        return config.getBoolean("default_kit.enabled", true);
+    }
+
+    public static String getDefaultKitDisplayName() {
+        return config.getString("default_kit.display_name", "Kit Base");
+    }
+
+    public static List<String> getDefaultKitItems() {
+        return config.getStringList("default_kit.items");
+    }
+
+    public static String getDefaultKitArmor(String piece) {
+        return config.getString("default_kit.armor." + piece);
+    }
+
+    // Metodo per ottenere tutti i pezzi di armatura del kit predefinito
+    public static Map<String, String> getDefaultKitArmor() {
+        Map<String, String> armor = new HashMap<>();
+        armor.put("helmet", config.getString("default_kit.armor.helmet"));
+        armor.put("chestplate", config.getString("default_kit.armor.chestplate"));
+        armor.put("leggings", config.getString("default_kit.armor.leggings"));
+        armor.put("boots", config.getString("default_kit.armor.boots"));
+        return armor;
+    }
+
     public static Map<String, WorldInfo> getWorlds() {
         Map<String, WorldInfo> worlds = new HashMap<>();
         ConfigurationSection worldsSection = config.getConfigurationSection("worlds");

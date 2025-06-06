@@ -17,6 +17,24 @@ party:
   max_members: 6
   require_leader: true  # Solo il leader può iniziare un raid
 
+# Kit predefinito che viene dato ai giocatori che non hanno selezionato un kit
+# Formato: MATERIAL:QUANTITA:DURABILITY:INCANTESIMI
+default_kit:
+  enabled: true
+  display_name: "Kit Base"
+  items:
+    - "IRON_SWORD:1:0:sharpness:2"
+    - "COOKED_BEEF:16:0"
+    - "GOLDEN_APPLE:3:0"
+    - "SHIELD:1:0"
+    - "BOW:1:0:power:2"
+  # Armatura separata per maggiore chiarezza
+  armor:
+    helmet: "IRON_HELMET:1:0:protection:1"
+    chestplate: "IRON_CHESTPLATE:1:0:protection:1"
+    leggings: "IRON_LEGGINGS:1:0:protection:1"
+    boots: "IRON_BOOTS:1:0:protection:1,feather_falling:2"
+
 # Comandi globali eseguiti dalla console per tutti i mondi al completamento di un raid
 # Placeholder disponibili: {player}, {world}, {uuid}
 global_console_commands:
