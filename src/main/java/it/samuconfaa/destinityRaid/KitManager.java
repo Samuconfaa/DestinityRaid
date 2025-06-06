@@ -7,7 +7,6 @@ import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
-import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.ChatColor;
 import org.bukkit.enchantments.Enchantment;
 
@@ -19,179 +18,207 @@ public class KitManager {
     private final DestinityRaid plugin;
     private File kitsFile;
     private FileConfiguration kitsConfig;
-    private Map<UUID, String> playerSelectedKits = new HashMap<>();
 
     public KitManager(DestinityRaid plugin) {
         this.plugin = plugin;
         loadKitsFile();
-        loadPlayerKits();
     }
 
     private void loadKitsFile() {
-        kitsFile = new File(plugin.getDataFolder(), "kits.yml");
+        kitsFile = new File(plugin.getDataFolder(), "player_kits.yml");
         if (!kitsFile.exists()) {
             try {
                 kitsFile.createNewFile();
-                // Crea la configurazione di default
-                createDefaultKits();
+                plugin.getLogger().info("File player_kits.yml creato!");
             } catch (IOException e) {
-                plugin.getLogger().severe("Impossibile creare il file kits.yml!");
+                plugin.getLogger().severe("Impossibile creare il file player_kits.yml!");
             }
         }
         kitsConfig = YamlConfiguration.loadConfiguration(kitsFile);
     }
 
-    private void createDefaultKits() {
-        // Kit Warrior (default)
-        createKit("warrior", "Guerriero", true, Arrays.asList(
-                "IRON_SWORD:1:0:sharpness:2",
-                "IRON_HELMET:1:0",
-                "IRON_CHESTPLATE:1:0",
-                "IRON_LEGGINGS:1:0",
-                "IRON_BOOTS:1:0",
-                "COOKED_BEEF:16:0",
-                "GOLDEN_APPLE:3:0",
-                "SHIELD:1:0"
-        ));
+    /**
+     * Salva il kit del giocatore dal suo inventario attuale
+     */
+    public void savePlayerKit(Player player) {
+        String playerUUID = player.getUniqueId().toString();
+        String basePath = "players." + playerUUID;
 
-        // Kit Archer
-        createKit("archer", "Arciere", false, Arrays.asList(
-                "BOW:1:0:power:3,infinity:1",
-                "ARROW:1:0",
-                "LEATHER_HELMET:1:0:protection:2",
-                "LEATHER_CHESTPLATE:1:0:protection:2",
-                "LEATHER_LEGGINGS:1:0:protection:2",
-                "LEATHER_BOOTS:1:0:protection:2,feather_falling:3",
-                "COOKED_CHICKEN:12:0",
-                "GOLDEN_APPLE:2:0",
-                "IRON_SWORD:1:0"
-        ));
+        PlayerInventory inventory = player.getInventory();
 
-        // Kit Miner
-        createKit("miner", "Minatore", false, Arrays.asList(
-                "IRON_PICKAXE:1:0:efficiency:3,unbreaking:2",
-                "IRON_SHOVEL:1:0:efficiency:2",
-                "IRON_HELMET:1:0",
-                "IRON_CHESTPLATE:1:0",
-                "IRON_LEGGINGS:1:0",
-                "IRON_BOOTS:1:0",
-                "TORCH:32:0",
-                "COOKED_PORKCHOP:8:0",
-                "GOLDEN_APPLE:2:0",
-                "STONE_SWORD:1:0"
-        ));
+        // Salva informazioni base
+        kitsConfig.set(basePath + ".name", player.getName());
+        kitsConfig.set(basePath + ".last_update", System.currentTimeMillis());
 
-        saveKits();
-        plugin.getLogger().info("Kit di default creati!");
+        // Salva armatura
+        kitsConfig.set(basePath + ".armor.helmet", itemToString(inventory.getHelmet()));
+        kitsConfig.set(basePath + ".armor.chestplate", itemToString(inventory.getChestplate()));
+        kitsConfig.set(basePath + ".armor.leggings", itemToString(inventory.getLeggings()));
+        kitsConfig.set(basePath + ".armor.boots", itemToString(inventory.getBoots()));
+
+        // Salva contenuto inventario (slot 0-35)
+        List<String> inventoryItems = new ArrayList<>();
+        for (int i = 0; i < 36; i++) {
+            ItemStack item = inventory.getItem(i);
+            inventoryItems.add(itemToString(item));
+        }
+        kitsConfig.set(basePath + ".inventory", inventoryItems);
+
+        // Salva hotbar separatamente per chiarezza
+        List<String> hotbarItems = new ArrayList<>();
+        for (int i = 0; i < 9; i++) {
+            ItemStack item = inventory.getItem(i);
+            hotbarItems.add(itemToString(item));
+        }
+        kitsConfig.set(basePath + ".hotbar", hotbarItems);
+
+        saveKitsFile();
+        player.sendMessage(ChatColor.GREEN + "Il tuo kit è stato salvato!");
     }
 
-    private void createKit(String kitId, String displayName, boolean isDefault, List<String> items) {
-        String basePath = "kits." + kitId;
-        kitsConfig.set(basePath + ".display_name", displayName);
-        kitsConfig.set(basePath + ".is_default", isDefault);
-        kitsConfig.set(basePath + ".items", items);
-    }
+    /**
+     * Carica e applica il kit del giocatore
+     */
+    public void loadPlayerKit(Player player) {
+        String playerUUID = player.getUniqueId().toString();
+        String basePath = "players." + playerUUID;
 
-    public void giveKit(Player player, String kitId) {
-        // Se il kit è "default" e il kit dal config è abilitato, usa quello
-        if (kitId.equals("default") && ConfigurationManager.isDefaultKitEnabled()) {
-            giveDefaultKitFromConfig(player);
+        if (!kitsConfig.contains(basePath)) {
+            // Se non ha un kit salvato, dagli un kit base
+            giveDefaultKit(player);
             return;
         }
 
-        ConfigurationSection kitSection = kitsConfig.getConfigurationSection("kits." + kitId);
-        if (kitSection == null) {
-            player.sendMessage(ChatColor.RED + "Kit non trovato!");
-            return;
-        }
-
-        List<String> itemStrings = kitSection.getStringList("items");
         PlayerInventory inventory = player.getInventory();
 
-        // Pulisci l'inventario prima di dare il kit
+        // Pulisci inventario
         inventory.clear();
         inventory.setArmorContents(new ItemStack[4]);
 
-        for (String itemString : itemStrings) {
-            ItemStack item = parseItemString(itemString);
+        // Carica armatura
+        inventory.setHelmet(parseItemString(kitsConfig.getString(basePath + ".armor.helmet")));
+        inventory.setChestplate(parseItemString(kitsConfig.getString(basePath + ".armor.chestplate")));
+        inventory.setLeggings(parseItemString(kitsConfig.getString(basePath + ".armor.leggings")));
+        inventory.setBoots(parseItemString(kitsConfig.getString(basePath + ".armor.boots")));
+
+        // Carica inventario
+        List<String> inventoryItems = kitsConfig.getStringList(basePath + ".inventory");
+        for (int i = 0; i < Math.min(inventoryItems.size(), 36); i++) {
+            ItemStack item = parseItemString(inventoryItems.get(i));
             if (item != null) {
-                // Se è un'armatura, mettila nel slot corretto
-                if (isArmor(item.getType())) {
-                    equipArmor(player, item);
-                } else {
-                    // Altrimenti aggiungila all'inventario
-                    inventory.addItem(item);
-                }
+                inventory.setItem(i, item);
             }
         }
 
-        String displayName = kitSection.getString("display_name", kitId);
-        player.sendMessage(ChatColor.GREEN + "Kit " + displayName + " equipaggiato!");
+        player.sendMessage(ChatColor.GREEN + "Kit caricato!");
     }
 
-    private void giveDefaultKitFromConfig(Player player) {
+    /**
+     * Controlla se il giocatore ha un kit salvato
+     */
+    public boolean hasPlayerKit(Player player) {
+        String playerUUID = player.getUniqueId().toString();
+        return kitsConfig.contains("players." + playerUUID);
+    }
+
+    /**
+     * Ottiene informazioni sul kit del giocatore
+     */
+    public KitInfo getPlayerKitInfo(Player player) {
+        String playerUUID = player.getUniqueId().toString();
+        String basePath = "players." + playerUUID;
+
+        if (!kitsConfig.contains(basePath)) {
+            return null;
+        }
+
+        String name = kitsConfig.getString(basePath + ".name", player.getName());
+        long lastUpdate = kitsConfig.getLong(basePath + ".last_update", 0);
+
+        return new KitInfo(name, lastUpdate);
+    }
+
+    /**
+     * Elimina il kit del giocatore
+     */
+    public void deletePlayerKit(Player player) {
+        String playerUUID = player.getUniqueId().toString();
+        String basePath = "players." + playerUUID;
+
+        kitsConfig.set(basePath, null);
+        saveKitsFile();
+
+        player.sendMessage(ChatColor.YELLOW + "Il tuo kit è stato eliminato!");
+    }
+
+    /**
+     * Da un kit base ai nuovi giocatori
+     */
+    private void giveDefaultKit(Player player) {
         PlayerInventory inventory = player.getInventory();
 
-        // Pulisci l'inventario prima di dare il kit
+        // Pulisci inventario
         inventory.clear();
         inventory.setArmorContents(new ItemStack[4]);
 
-        // Equipaggia l'armatura dal config
-        Map<String, String> armorPieces = ConfigurationManager.getDefaultKitArmor();
-        for (Map.Entry<String, String> entry : armorPieces.entrySet()) {
-            if (entry.getValue() != null && !entry.getValue().isEmpty()) {
-                ItemStack armorPiece = parseItemString(entry.getValue());
-                if (armorPiece != null) {
-                    equipArmorByType(player, armorPiece, entry.getKey());
-                }
-            }
-        }
+        // Kit base semplice
+        inventory.setHelmet(new ItemStack(Material.LEATHER_HELMET));
+        inventory.setChestplate(new ItemStack(Material.LEATHER_CHESTPLATE));
+        inventory.setLeggings(new ItemStack(Material.LEATHER_LEGGINGS));
+        inventory.setBoots(new ItemStack(Material.LEATHER_BOOTS));
 
-        // Aggiungi gli oggetti dall'inventario
-        List<String> items = ConfigurationManager.getDefaultKitItems();
-        for (String itemString : items) {
-            ItemStack item = parseItemString(itemString);
-            if (item != null) {
-                inventory.addItem(item);
-            }
-        }
+        inventory.setItem(0, new ItemStack(Material.WOODEN_SWORD));
+        inventory.setItem(1, new ItemStack(Material.BREAD, 8));
+        inventory.setItem(2, new ItemStack(Material.WOODEN_PICKAXE));
 
-        String displayName = ConfigurationManager.getDefaultKitDisplayName();
-        player.sendMessage(ChatColor.GREEN + "Kit " + displayName + " equipaggiato!");
+        player.sendMessage(ChatColor.YELLOW + "Ti è stato dato un kit base. Personalizzalo e salvalo!");
     }
 
-    private void equipArmorByType(Player player, ItemStack armor, String type) {
-        PlayerInventory inventory = player.getInventory();
-
-        switch (type.toLowerCase()) {
-            case "helmet":
-                inventory.setHelmet(armor);
-                break;
-            case "chestplate":
-                inventory.setChestplate(armor);
-                break;
-            case "leggings":
-                inventory.setLeggings(armor);
-                break;
-            case "boots":
-                inventory.setBoots(armor);
-                break;
+    /**
+     * Converte un ItemStack in stringa per il salvataggio
+     */
+    private String itemToString(ItemStack item) {
+        if (item == null || item.getType() == Material.AIR) {
+            return "AIR:0:0";
         }
+
+        StringBuilder sb = new StringBuilder();
+        sb.append(item.getType().name()).append(":");
+        sb.append(item.getAmount()).append(":");
+        sb.append("0"); // Durability placeholder
+
+        // Aggiungi incantesimi se presenti
+        if (!item.getEnchantments().isEmpty()) {
+            sb.append(":");
+            List<String> enchants = new ArrayList<>();
+            for (Map.Entry<Enchantment, Integer> entry : item.getEnchantments().entrySet()) {
+                enchants.add(entry.getKey().getKey().getKey() + ":" + entry.getValue());
+            }
+            sb.append(String.join(",", enchants));
+        }
+
+        return sb.toString();
     }
 
+    /**
+     * Converte una stringa in ItemStack
+     */
     private ItemStack parseItemString(String itemString) {
+        if (itemString == null || itemString.isEmpty() || itemString.startsWith("AIR:")) {
+            return null;
+        }
+
         String[] parts = itemString.split(":");
         if (parts.length < 3) return null;
 
         try {
             Material material = Material.valueOf(parts[0].toUpperCase());
             int amount = Integer.parseInt(parts[1]);
-            // parts[2] era per durability in versioni vecchie, ora ignorato
 
             ItemStack item = new ItemStack(material, amount);
 
             // Applica incantesimi se presenti
-            if (parts.length > 3) {
+            if (parts.length > 3 && !parts[3].isEmpty()) {
                 String[] enchantments = parts[3].split(",");
                 for (String enchantPart : enchantments) {
                     String[] enchantData = enchantPart.split(":");
@@ -218,194 +245,64 @@ public class KitManager {
         }
     }
 
-    private boolean isArmor(Material material) {
-        String name = material.name();
-        return name.endsWith("_HELMET") || name.endsWith("_CHESTPLATE") ||
-                name.endsWith("_LEGGINGS") || name.endsWith("_BOOTS");
-    }
-
-    private void equipArmor(Player player, ItemStack armor) {
-        PlayerInventory inventory = player.getInventory();
-        String materialName = armor.getType().name();
-
-        if (materialName.endsWith("_HELMET")) {
-            inventory.setHelmet(armor);
-        } else if (materialName.endsWith("_CHESTPLATE")) {
-            inventory.setChestplate(armor);
-        } else if (materialName.endsWith("_LEGGINGS")) {
-            inventory.setLeggings(armor);
-        } else if (materialName.endsWith("_BOOTS")) {
-            inventory.setBoots(armor);
-        }
-    }
-
-    public void setPlayerKit(Player player, String kitId) {
-        // Controlla se il kit esiste (incluso il kit "default")
-        if (!kitExists(kitId) && !kitId.equals("default")) {
-            player.sendMessage(ChatColor.RED + "Kit non esistente!");
-            return;
-        }
-
-        playerSelectedKits.put(player.getUniqueId(), kitId);
-        savePlayerKits();
-
-        String displayName = getKitDisplayName(kitId);
-        player.sendMessage(ChatColor.GREEN + "Kit selezionato: " + displayName);
-    }
-
-    public String getPlayerKit(Player player) {
-        String kit = playerSelectedKits.get(player.getUniqueId());
-        if (kit == null) {
-            // Se il kit dal config è abilitato, restituisci "default"
-            if (ConfigurationManager.isDefaultKitEnabled()) {
-                return "default";
-            }
-            // Altrimenti restituisci il kit di default dai file
-            return getDefaultKit();
-        }
-        return kit;
-    }
-
-    public String getDefaultKit() {
-        // Se il kit dal config è abilitato, usa quello
-        if (ConfigurationManager.isDefaultKitEnabled()) {
-            return "default";
-        }
-
-        // Altrimenti cerca nei kit salvati
-        ConfigurationSection kitsSection = kitsConfig.getConfigurationSection("kits");
-        if (kitsSection != null) {
-            for (String kitId : kitsSection.getKeys(false)) {
-                if (kitsConfig.getBoolean("kits." + kitId + ".is_default", false)) {
-                    return kitId;
-                }
-            }
-        }
-        return "warrior"; // Fallback
-    }
-
-    public boolean kitExists(String kitId) {
-        // Il kit "default" esiste sempre se abilitato nel config
-        if (kitId.equals("default") && ConfigurationManager.isDefaultKitEnabled()) {
-            return true;
-        }
-        return kitsConfig.contains("kits." + kitId);
-    }
-
-    public String getKitDisplayName(String kitId) {
-        // Se è il kit default dal config
-        if (kitId.equals("default") && ConfigurationManager.isDefaultKitEnabled()) {
-            return ConfigurationManager.getDefaultKitDisplayName();
-        }
-        return kitsConfig.getString("kits." + kitId + ".display_name", kitId);
-    }
-
-    public Set<String> getAvailableKits() {
-        Set<String> kits = new HashSet<>();
-
-        // Aggiungi il kit default se abilitato
-        if (ConfigurationManager.isDefaultKitEnabled()) {
-            kits.add("default");
-        }
-
-        // Aggiungi i kit dal file kits.yml
-        ConfigurationSection kitsSection = kitsConfig.getConfigurationSection("kits");
-        if (kitsSection != null) {
-            kits.addAll(kitsSection.getKeys(false));
-        }
-
-        return kits;
-    }
-
-    public void savePlayerKit(Player player, String kitName) {
-        String kitId = kitName.toLowerCase().replaceAll("[^a-z0-9]", "");
-        String basePath = "kits." + kitId;
-
-        kitsConfig.set(basePath + ".display_name", kitName);
-        kitsConfig.set(basePath + ".is_default", false);
-
-        List<String> items = new ArrayList<>();
-        PlayerInventory inventory = player.getInventory();
-
-        // Aggiungi l'armatura
-        if (inventory.getHelmet() != null) {
-            items.add(itemToString(inventory.getHelmet()));
-        }
-        if (inventory.getChestplate() != null) {
-            items.add(itemToString(inventory.getChestplate()));
-        }
-        if (inventory.getLeggings() != null) {
-            items.add(itemToString(inventory.getLeggings()));
-        }
-        if (inventory.getBoots() != null) {
-            items.add(itemToString(inventory.getBoots()));
-        }
-
-        // Aggiungi gli oggetti dall'inventario
-        for (ItemStack item : inventory.getContents()) {
-            if (item != null && item.getType() != Material.AIR) {
-                items.add(itemToString(item));
-            }
-        }
-
-        kitsConfig.set(basePath + ".items", items);
-        saveKits();
-
-        player.sendMessage(ChatColor.GREEN + "Kit '" + kitName + "' salvato!");
-    }
-
-    private String itemToString(ItemStack item) {
-        StringBuilder sb = new StringBuilder();
-        sb.append(item.getType().name()).append(":");
-        sb.append(item.getAmount()).append(":");
-        sb.append("0"); // Durability placeholder
-
-        // Aggiungi incantesimi
-        if (!item.getEnchantments().isEmpty()) {
-            sb.append(":");
-            List<String> enchants = new ArrayList<>();
-            for (Map.Entry<Enchantment, Integer> entry : item.getEnchantments().entrySet()) {
-                enchants.add(entry.getKey().getKey().getKey() + ":" + entry.getValue());
-            }
-            sb.append(String.join(",", enchants));
-        }
-
-        return sb.toString();
-    }
-
-    private void loadPlayerKits() {
-        ConfigurationSection playersSection = kitsConfig.getConfigurationSection("players");
-        if (playersSection != null) {
-            for (String uuidString : playersSection.getKeys(false)) {
-                try {
-                    UUID playerUUID = UUID.fromString(uuidString);
-                    String kitId = playersSection.getString(uuidString);
-                    playerSelectedKits.put(playerUUID, kitId);
-                } catch (IllegalArgumentException e) {
-                    plugin.getLogger().warning("UUID non valido nel file kits: " + uuidString);
-                }
-            }
-        }
-    }
-
-    private void savePlayerKits() {
-        for (Map.Entry<UUID, String> entry : playerSelectedKits.entrySet()) {
-            kitsConfig.set("players." + entry.getKey().toString(), entry.getValue());
-        }
-        saveKits();
-    }
-
-    private void saveKits() {
+    /**
+     * Salva il file dei kit
+     */
+    private void saveKitsFile() {
         try {
             kitsConfig.save(kitsFile);
         } catch (IOException e) {
-            plugin.getLogger().severe("Impossibile salvare il file kits.yml!");
+            plugin.getLogger().severe("Impossibile salvare il file player_kits.yml!");
             e.printStackTrace();
         }
     }
 
-    public void onPlayerQuit(Player player) {
-        // Non rimuovere il kit selezionato quando un giocatore lascia il server
-        // Il kit rimane salvato per la prossima volta
+    /**
+     * Ottiene la lista di tutti i giocatori con kit salvati
+     */
+    public List<String> getPlayersWithKits() {
+        List<String> players = new ArrayList<>();
+        ConfigurationSection playersSection = kitsConfig.getConfigurationSection("players");
+
+        if (playersSection != null) {
+            for (String uuid : playersSection.getKeys(false)) {
+                String playerName = kitsConfig.getString("players." + uuid + ".name");
+                if (playerName != null) {
+                    players.add(playerName);
+                }
+            }
+        }
+
+        return players;
+    }
+
+    /**
+     * Classe per informazioni sul kit
+     */
+    public static class KitInfo {
+        private final String playerName;
+        private final long lastUpdate;
+
+        public KitInfo(String playerName, long lastUpdate) {
+            this.playerName = playerName;
+            this.lastUpdate = lastUpdate;
+        }
+
+        public String getPlayerName() { return playerName; }
+        public long getLastUpdate() { return lastUpdate; }
+
+        public String getFormattedLastUpdate() {
+            if (lastUpdate == 0) return "Mai";
+
+            long diff = System.currentTimeMillis() - lastUpdate;
+            long days = diff / (24 * 60 * 60 * 1000);
+            long hours = (diff % (24 * 60 * 60 * 1000)) / (60 * 60 * 1000);
+            long minutes = (diff % (60 * 60 * 1000)) / (60 * 1000);
+
+            if (days > 0) return days + " giorni fa";
+            if (hours > 0) return hours + " ore fa";
+            if (minutes > 0) return minutes + " minuti fa";
+            return "Pochi secondi fa";
+        }
     }
 }
