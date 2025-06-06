@@ -1,23 +1,37 @@
 name: DestinityRaid
 version: '1.0'
 main: it.samuconfaa.destinityRaid.DestinityRaid
-api-version: '1.21'
-author: SamuConfaa
-description: Plugin per gestire raid e selezione mondi
+api-version: '1.20'
+depend: []
+softdepend: [Parties]
+authors: [SamuConfaa]
+description: Plugin per gestire raid con party e statistiche
 
 commands:
   raid:
-    description: Comando principale del plugin
+    description: Comandi principali del raid
     usage: /raid [reload|stats]
     permission: raid.use
+    permission-message: Non hai il permesso per usare questo comando!
+  kit:
+    description: Gestione kit per i raid
+    usage: /kit [list|select|current|preview|save|equip]
+    permission: kit.use
+    permission-message: Non hai il permesso per usare questo comando!
 
 permissions:
   raid.use:
-    description: Permesso base per usare il plugin
+    description: Permesso base per usare i comandi raid
     default: true
   raid.reload:
     description: Permesso per ricaricare la configurazione
     default: op
   raid.stats:
-    description: Permesso per vedere le statistiche dei raid
+    description: Permesso per vedere le statistiche
+    default: true
+  kit.use:
+    description: Permesso base per usare i comandi kit
+    default: true
+  kit.save:
+    description: Permesso per salvare nuovi kit
     default: true

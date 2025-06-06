@@ -129,6 +129,12 @@ public class PlayerListener implements Listener {
             plugin.getRaidStatsManager().endRaid(player, occupiedWorld);
             plugin.getWorldManager().freeWorld(occupiedWorld);
         }
+
+        // Pulisci i dati del DeathManager
+        plugin.getDeathManager().onPlayerQuit(player);
+
+        // Pulisci i dati del KitManager
+        plugin.getKitManager().onPlayerQuit(player);
     }
 
     // Previeni il drop della Nether Star
@@ -178,7 +184,7 @@ public class PlayerListener implements Listener {
         ItemStack cursorItem = event.getCursor();
 
         // Controlla se sta tentando di spostare la Nether Star dal slot 5
-        if (event.getSlot() == 5 && clickedItem != null &&
+        if (event.getSlot() == 4 && clickedItem != null &&
                 clickedItem.getType() == Material.NETHER_STAR &&
                 clickedItem.hasItemMeta() &&
                 clickedItem.getItemMeta().hasDisplayName() &&
@@ -190,8 +196,8 @@ public class PlayerListener implements Listener {
         }
 
         // Controlla se sta tentando di mettere qualcosa nel slot 5 quando c'è già la Nether Star
-        if (event.getSlot() == 5 && cursorItem != null && !cursorItem.getType().isAir()) {
-            ItemStack slotItem = player.getInventory().getItem(5);
+        if (event.getSlot() == 4 && cursorItem != null && !cursorItem.getType().isAir()) {
+            ItemStack slotItem = player.getInventory().getItem(4);
             if (slotItem != null && slotItem.getType() == Material.NETHER_STAR &&
                     slotItem.hasItemMeta() &&
                     slotItem.getItemMeta().hasDisplayName() &&
@@ -310,6 +316,10 @@ public class PlayerListener implements Listener {
         for (Player member : partyMembers) {
             member.teleport(hubSpawn);
             member.sendMessage(ChatColor.GREEN + "Raid completato! Siete tornati al mondo hub!");
+
+            // Termina il raid per il membro (ripristina gamemode e pulisce dati)
+            plugin.getDeathManager().onRaidEnd(member);
+
             giveCompass(member);
         }
     }

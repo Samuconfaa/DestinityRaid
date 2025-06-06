@@ -7,6 +7,8 @@ public final class DestinityRaid extends JavaPlugin {
     private WorldManager worldManager;
     private RaidStatsManager raidStatsManager;
     private PartyManager partyManager;
+    private DeathManager deathManager;
+    private KitManager kitManager;
     private static DestinityRaid instance;
 
     @Override
@@ -18,10 +20,14 @@ public final class DestinityRaid extends JavaPlugin {
         worldManager = new WorldManager();
         raidStatsManager = new RaidStatsManager(this);
         partyManager = new PartyManager(this);
+        deathManager = new DeathManager(this);
+        kitManager = new KitManager(this);
 
         // Registra eventi e comandi
         getServer().getPluginManager().registerEvents(new PlayerListener(this), this);
+        getServer().getPluginManager().registerEvents(deathManager, this);
         getCommand("raid").setExecutor(new RaidCommand(this));
+        getCommand("kit").setExecutor(new KitCommand(this));
 
         getLogger().info("DestinityRaid plugin abilitato!");
     }
@@ -48,5 +54,13 @@ public final class DestinityRaid extends JavaPlugin {
 
     public PartyManager getPartyManager() {
         return partyManager;
+    }
+
+    public DeathManager getDeathManager() {
+        return deathManager;
+    }
+
+    public KitManager getKitManager() {
+        return kitManager;
     }
 }

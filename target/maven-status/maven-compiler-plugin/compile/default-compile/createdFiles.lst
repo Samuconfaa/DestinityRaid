@@ -1,10 +1,12 @@
+it\samuconfaa\destinityRaid\KitCommand.class
 it\samuconfaa\destinityRaid\DestinityRaid.class
 it\samuconfaa\destinityRaid\RaidCommand$RaidInfo.class
-it\samuconfaa\destinityRaid\RaidCommand.class
-it\samuconfaa\destinityRaid\ConfigurationManager.class
+it\samuconfaa\destinityRaid\DeathManager.class
 it\samuconfaa\destinityRaid\WorldSelectorGUI.class
 it\samuconfaa\destinityRaid\WorldManager.class
-it\samuconfaa\destinityRaid\ConfigurationManager$WorldInfo.class
-it\samuconfaa\destinityRaid\PartyManager.class
 it\samuconfaa\destinityRaid\PlayerListener.class
 it\samuconfaa\destinityRaid\RaidStatsManager.class
+it\samuconfaa\destinityRaid\RaidCommand.class
+it\samuconfaa\destinityRaid\ConfigurationManager.class
+it\samuconfaa\destinityRaid\ConfigurationManager$WorldInfo.class
+it\samuconfaa\destinityRaid\PartyManager.class

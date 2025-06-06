@@ -13,6 +13,7 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -25,30 +26,35 @@ public class WorldSelectorGUI implements Listener {
     }
 
     public void openGUI(Player player) {
+        Inventory gui = Bukkit.createInventory(null, 27, ChatColor.DARK_PURPLE + "Seleziona Mondo");
+
         Map<String, ConfigurationManager.WorldInfo> worlds = ConfigurationManager.getWorlds();
-
-        int size = Math.max(9, ((worlds.size() / 9) + 1) * 9);
-        Inventory gui = Bukkit.createInventory(null, size, ChatColor.DARK_PURPLE + "Seleziona Mondo");
-
         int slot = 0;
+
         for (Map.Entry<String, ConfigurationManager.WorldInfo> entry : worlds.entrySet()) {
+            if (slot >= 27) break;
+
             String worldKey = entry.getKey();
             ConfigurationManager.WorldInfo worldInfo = entry.getValue();
 
-            Material material = plugin.getWorldManager().isWorldOccupied(worldKey) ?
-                    Material.RED_WOOL : Material.GREEN_WOOL;
-
-            ItemStack item = new ItemStack(material);
+            ItemStack item = new ItemStack(Material.GRASS_BLOCK);
             ItemMeta meta = item.getItemMeta();
+
             if (meta != null) {
-                meta.setDisplayName(ChatColor.YELLOW + worldInfo.getDisplayName());
+                meta.setDisplayName(ChatColor.GREEN + worldInfo.getDisplayName());
+
+                List<String> lore = new ArrayList<>();
+                lore.add(ChatColor.GRAY + "Mondo: " + worldInfo.getWorldName());
 
                 if (plugin.getWorldManager().isWorldOccupied(worldKey)) {
-                    meta.setLore(java.util.Arrays.asList(ChatColor.RED + "Mondo occupato!"));
+                    lore.add(ChatColor.RED + "Occupato");
+                    item.setType(Material.BARRIER);
                 } else {
-                    meta.setLore(java.util.Arrays.asList(ChatColor.GREEN + "Clicca per entrare!"));
+                    lore.add(ChatColor.GREEN + "Disponibile");
+                    lore.add(ChatColor.YELLOW + "Clicca per entrare!");
                 }
 
+                meta.setLore(lore);
                 item.setItemMeta(meta);
             }
 
@@ -61,72 +67,121 @@ public class WorldSelectorGUI implements Listener {
 
     @EventHandler
     public void onInventoryClick(InventoryClickEvent event) {
-        if (event.getView().getTitle().equals(ChatColor.DARK_PURPLE + "Seleziona Mondo")) {
-            event.setCancelled(true);
+        if (!event.getView().getTitle().equals(ChatColor.DARK_PURPLE + "Seleziona Mondo")) {
+            return;
+        }
 
-            if (event.getCurrentItem() == null || event.getCurrentItem().getType() == Material.AIR) {
-                return;
-            }
+        event.setCancelled(true);
 
-            Player player = (Player) event.getWhoClicked();
-            ItemStack clickedItem = event.getCurrentItem();
+        if (!(event.getWhoClicked() instanceof Player)) {
+            return;
+        }
 
-            if (clickedItem.getType() == Material.RED_WOOL) {
-                player.sendMessage(ChatColor.RED + "Questo mondo è già occupato!");
-                return;
-            }
+        Player player = (Player) event.getWhoClicked();
+        ItemStack clickedItem = event.getCurrentItem();
 
-            if (clickedItem.getType() == Material.GREEN_WOOL) {
-                // Validazione party prima di permettere l'accesso
-                String validationError = plugin.getPartyManager().validatePartyForRaid(player);
-                if (validationError != null) {
-                    player.sendMessage(validationError);
-                    player.closeInventory();
-                    return;
-                }
+        if (clickedItem == null || clickedItem.getType() == Material.AIR) {
+            return;
+        }
 
-                String worldDisplayName = ChatColor.stripColor(clickedItem.getItemMeta().getDisplayName());
+        // Se ha cliccato su un mondo non disponibile, non fare nulla
+        if (clickedItem.getType() == Material.BARRIER) {
+            player.sendMessage(ChatColor.RED + "Questo mondo è già occupato!");
+            return;
+        }
 
-                // Trova il mondo corrispondente
-                Map<String, ConfigurationManager.WorldInfo> worlds = ConfigurationManager.getWorlds();
-                for (Map.Entry<String, ConfigurationManager.WorldInfo> entry : worlds.entrySet()) {
-                    ConfigurationManager.WorldInfo worldInfo = entry.getValue();
-                    if (worldInfo.getDisplayName().equals(worldDisplayName)) {
-                        teleportToWorld(player, entry.getKey(), worldInfo);
-                        break;
-                    }
-                }
-            }
+        // Trova il mondo corrispondente al click
+        String selectedWorldKey = findWorldKeyByDisplayName(clickedItem);
+        if (selectedWorldKey == null) {
+            player.sendMessage(ChatColor.RED + "Errore: Mondo non trovato!");
+            return;
+        }
 
-            player.closeInventory();
+        player.closeInventory();
+
+        // Prova ad iniziare il raid
+        if (attemptRaidStart(player, selectedWorldKey)) {
+            player.sendMessage(ChatColor.GREEN + "Teletrasporto in corso...");
         }
     }
 
-    private void teleportToWorld(Player player, String worldKey, ConfigurationManager.WorldInfo worldInfo) {
-        World world = plugin.getServer().getWorld(worldInfo.getWorldName());
+    private String findWorldKeyByDisplayName(ItemStack item) {
+        if (!item.hasItemMeta() || !item.getItemMeta().hasDisplayName()) {
+            return null;
+        }
+
+        String displayName = ChatColor.stripColor(item.getItemMeta().getDisplayName());
+        Map<String, ConfigurationManager.WorldInfo> worlds = ConfigurationManager.getWorlds();
+
+        for (Map.Entry<String, ConfigurationManager.WorldInfo> entry : worlds.entrySet()) {
+            if (entry.getValue().getDisplayName().equals(displayName)) {
+                return entry.getKey();
+            }
+        }
+        return null;
+    }
+
+    private boolean attemptRaidStart(Player player, String worldKey) {
+        // Controlla se il mondo è disponibile
+        if (plugin.getWorldManager().isWorldOccupied(worldKey)) {
+            player.sendMessage(ChatColor.RED + "Questo mondo è già occupato!");
+            return false;
+        }
+
+        // Controlli per i party utilizzando il metodo di validazione integrato
+        String partyValidationError = plugin.getPartyManager().validatePartyForRaid(player);
+        if (partyValidationError != null) {
+            player.sendMessage(partyValidationError);
+            return false;
+        }
+
+        // Ottieni i membri del party (se Parties è abilitato) o solo il giocatore
+        List<Player> partyMembers = plugin.getPartyManager().getPartyMembers(player);
+
+        // Teletrasporta il giocatore/party
+        return teleportPlayersToWorld(player, worldKey, partyMembers);
+    }
+
+    private boolean teleportPlayersToWorld(Player leader, String worldKey, List<Player> players) {
+        Map<String, ConfigurationManager.WorldInfo> worlds = ConfigurationManager.getWorlds();
+        ConfigurationManager.WorldInfo worldInfo = worlds.get(worldKey);
+
+        if (worldInfo == null) {
+            leader.sendMessage(ChatColor.RED + "Errore: Configurazione mondo non trovata!");
+            return false;
+        }
+
+        World world = Bukkit.getWorld(worldInfo.getWorldName());
         if (world == null) {
-            player.sendMessage(ChatColor.RED + "Errore: Il mondo non esiste!");
-            return;
+            leader.sendMessage(ChatColor.RED + "Errore: Mondo non trovato sul server!");
+            return false;
         }
 
         Location spawnLocation = new Location(world, worldInfo.getSpawnX(), worldInfo.getSpawnY(), worldInfo.getSpawnZ());
 
-        // Ottieni tutti i membri del party
-        List<Player> partyMembers = plugin.getPartyManager().getPartyMembers(player);
+        // Occupa il mondo
+        plugin.getWorldManager().occupyWorld(worldKey, leader);
 
-        // Teletrasporta tutti i membri del party
-        for (Player member : partyMembers) {
-            member.teleport(spawnLocation);
-            member.sendMessage(ChatColor.GREEN + "Benvenuto nel mondo: " + worldInfo.getDisplayName());
-            member.sendMessage(ChatColor.YELLOW + "Trova il blocco d'oro per completare il raid!");
+        // Inizia il raid
+        plugin.getRaidStatsManager().startRaid(leader, worldKey);
+
+        // Teletrasporta e prepara tutti i giocatori
+        for (Player player : players) {
+            if (player != null && player.isOnline()) {
+                player.teleport(spawnLocation);
+
+                // Inizializza il sistema di morti per il raid
+                plugin.getDeathManager().onRaidStart(player);
+
+                // Equipaggia il kit del giocatore
+                String playerKit = plugin.getKitManager().getPlayerKit(player);
+                plugin.getKitManager().giveKit(player, playerKit);
+
+                player.sendMessage(ChatColor.GREEN + "Raid iniziato in " + worldInfo.getDisplayName() + "!");
+                player.sendMessage(ChatColor.YELLOW + "Ricorda: hai solo 2 vite, poi diventerai spettatore!");
+            }
         }
 
-        // Occupa il mondo con il player che ha avviato il raid
-        plugin.getWorldManager().occupyWorld(worldKey, player);
-        plugin.getRaidStatsManager().startRaid(player, worldKey);
-
-        // Invia messaggio di conferma al party
-        String partyMessage = ChatColor.GREEN + "Raid iniziato nel mondo: " + worldInfo.getDisplayName();
-        plugin.getPartyManager().sendMessageToParty(player, partyMessage);
+        return true;
     }
 }
