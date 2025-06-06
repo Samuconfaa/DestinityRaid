@@ -10,6 +10,7 @@ public final class DestinityRaid extends JavaPlugin {
     private DeathManager deathManager;
     private KitManager kitManager;
     private static DestinityRaid instance;
+    private KitGUI kitGUI;
 
     @Override
     public void onEnable() {
@@ -22,6 +23,8 @@ public final class DestinityRaid extends JavaPlugin {
         partyManager = new PartyManager(this);
         deathManager = new DeathManager(this);
         kitManager = new KitManager(this);
+        this.kitManager = new KitManager(this);
+        this.kitGUI = new KitGUI(this);
 
         // Registra eventi e comandi
         getServer().getPluginManager().registerEvents(new PlayerListener(this), this);
@@ -63,4 +66,9 @@ public final class DestinityRaid extends JavaPlugin {
     public KitManager getKitManager() {
         return kitManager;
     }
+
+    public KitGUI getKitGUI() {
+        return kitGUI;
+    }
+
 }

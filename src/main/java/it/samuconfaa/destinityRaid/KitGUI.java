@@ -64,6 +64,7 @@ public class KitGUI implements Listener {
         editKitLore.add(ChatColor.GRAY + "• Armatura");
         editKitLore.add(ChatColor.GRAY + "• Oggetti nell'inventario");
         editKitLore.add(ChatColor.GRAY + "• Hotbar");
+        editKitLore.add(ChatColor.GOLD + "Nota: L'inventario attuale verrà copiato");
 
         editKitMeta.setLore(editKitLore);
         editKit.setItemMeta(editKitMeta);
@@ -113,18 +114,14 @@ public class KitGUI implements Listener {
      * Apre l'editor del kit
      */
     public void openKitEditor(Player player) {
-        // Crea una sessione di editing
+        // Crea una sessione di editing con backup dell'inventario attuale
         KitEditSession session = new KitEditSession(player);
         editSessions.put(player.getUniqueId(), session);
 
-        // Carica il kit attuale se esiste
-        if (plugin.getKitManager().hasPlayerKit(player)) {
-            plugin.getKitManager().loadPlayerKit(player);
-        }
-
+        // NON caricare automaticamente il kit - mantieni l'inventario attuale del giocatore
         Inventory gui = Bukkit.createInventory(null, 54, ChatColor.DARK_GREEN + "Editor Kit - " + player.getName());
 
-        // Copia l'inventario del giocatore nella GUI
+        // Copia l'inventario ATTUALE del giocatore nella GUI (non il kit salvato)
         copyPlayerInventoryToGUI(player, gui);
 
         // Bottoni di controllo
@@ -132,6 +129,7 @@ public class KitGUI implements Listener {
 
         player.openInventory(gui);
         player.sendMessage(ChatColor.YELLOW + "Editor kit aperto! Modifica il tuo equipaggiamento e clicca 'Salva' quando hai finito.");
+        player.sendMessage(ChatColor.GOLD + "Il tuo inventario attuale è stato copiato nell'editor.");
     }
 
     /**
@@ -144,7 +142,7 @@ public class KitGUI implements Listener {
         gui.setItem(47, player.getInventory().getChestplate());
         gui.setItem(48, player.getInventory().getHelmet());
 
-        // Inventario principale (slot 9-44)
+        // Inventario principale (slot 9-44) - Copia dall'inventario ATTUALE del giocatore
         for (int i = 0; i < 36; i++) {
             ItemStack item = player.getInventory().getItem(i);
             gui.setItem(i + 9, item);
@@ -161,15 +159,33 @@ public class KitGUI implements Listener {
      * Configura i bottoni di controllo
      */
     private void setupControlButtons(Inventory gui) {
-        // Bottone salva
-        ItemStack saveButton = new ItemStack(Material.EMERALD_BLOCK);
-        ItemMeta saveMeta = saveButton.getItemMeta();
-        saveMeta.setDisplayName(ChatColor.GREEN + "Salva Kit");
-        List<String> saveLore = new ArrayList<>();
-        saveLore.add(ChatColor.GRAY + "Clicca per salvare il kit");
-        saveMeta.setLore(saveLore);
-        saveButton.setItemMeta(saveMeta);
-        gui.setItem(53, saveButton);
+        // Bottone carica kit esistente
+        ItemStack loadExistingKit = new ItemStack(Material.ENDER_CHEST);
+        ItemMeta loadExistingMeta = loadExistingKit.getItemMeta();
+        loadExistingMeta.setDisplayName(ChatColor.BLUE + "Carica Kit Salvato");
+        List<String> loadExistingLore = new ArrayList<>();
+        loadExistingLore.add(ChatColor.GRAY + "Carica il kit attualmente salvato");
+        loadExistingLore.add(ChatColor.GRAY + "nell'editor per modificarlo");
+        loadExistingMeta.setLore(loadExistingLore);
+        loadExistingKit.setItemMeta(loadExistingMeta);
+        gui.setItem(49, loadExistingKit);
+
+        // Bottone reset
+        ItemStack resetButton = new ItemStack(Material.YELLOW_CONCRETE);
+        ItemMeta resetMeta = resetButton.getItemMeta();
+        resetMeta.setDisplayName(ChatColor.YELLOW + "Reset");
+        List<String> resetLore = new ArrayList<>();
+        resetLore.add(ChatColor.GRAY + "Svuota tutto l'inventario");
+        resetMeta.setLore(resetLore);
+        resetButton.setItemMeta(resetMeta);
+        gui.setItem(50, resetButton);
+
+        // Separatore
+        ItemStack separator = new ItemStack(Material.GRAY_STAINED_GLASS_PANE);
+        ItemMeta separatorMeta = separator.getItemMeta();
+        separatorMeta.setDisplayName(" ");
+        separator.setItemMeta(separatorMeta);
+        gui.setItem(51, separator);
 
         // Bottone annulla
         ItemStack cancelButton = new ItemStack(Material.REDSTONE_BLOCK);
@@ -181,23 +197,15 @@ public class KitGUI implements Listener {
         cancelButton.setItemMeta(cancelMeta);
         gui.setItem(52, cancelButton);
 
-        // Bottone reset
-        ItemStack resetButton = new ItemStack(Material.YELLOW_CONCRETE);
-        ItemMeta resetMeta = resetButton.getItemMeta();
-        resetMeta.setDisplayName(ChatColor.YELLOW + "Reset");
-        List<String> resetLore = new ArrayList<>();
-        resetLore.add(ChatColor.GRAY + "Svuota tutto l'inventario");
-        resetMeta.setLore(resetLore);
-        resetButton.setItemMeta(resetMeta);
-        gui.setItem(51, resetButton);
-
-        // Separatori
-        ItemStack separator = new ItemStack(Material.GRAY_STAINED_GLASS_PANE);
-        ItemMeta separatorMeta = separator.getItemMeta();
-        separatorMeta.setDisplayName(" ");
-        separator.setItemMeta(separatorMeta);
-        gui.setItem(49, separator);
-        gui.setItem(50, separator);
+        // Bottone salva
+        ItemStack saveButton = new ItemStack(Material.EMERALD_BLOCK);
+        ItemMeta saveMeta = saveButton.getItemMeta();
+        saveMeta.setDisplayName(ChatColor.GREEN + "Salva Kit");
+        List<String> saveLore = new ArrayList<>();
+        saveLore.add(ChatColor.GRAY + "Clicca per salvare il kit");
+        saveMeta.setLore(saveLore);
+        saveButton.setItemMeta(saveMeta);
+        gui.setItem(53, saveButton);
     }
 
     @EventHandler
@@ -230,7 +238,9 @@ public class KitGUI implements Listener {
         if (title.startsWith(ChatColor.DARK_GREEN + "Editor Kit")) {
             KitEditSession session = editSessions.remove(player.getUniqueId());
             if (session != null && !session.wasSaved()) {
-                player.sendMessage(ChatColor.YELLOW + "Editor kit chiuso senza salvare le modifiche.");
+                // Ripristina l'inventario originale
+                session.restorePlayerInventory();
+                player.sendMessage(ChatColor.YELLOW + "Editor kit chiuso senza salvare. Inventario ripristinato.");
             }
         }
     }
@@ -282,8 +292,18 @@ public class KitGUI implements Listener {
             event.setCancelled(true);
 
             switch (slot) {
-                case 53: // Salva
-                    saveKitFromGUI(player, event.getInventory());
+                case 49: // Carica kit esistente
+                    if (plugin.getKitManager().hasPlayerKit(player)) {
+                        loadSavedKitIntoEditor(player, event.getInventory());
+                        player.sendMessage(ChatColor.GREEN + "Kit salvato caricato nell'editor!");
+                    } else {
+                        player.sendMessage(ChatColor.RED + "Non hai un kit salvato da caricare!");
+                    }
+                    break;
+
+                case 50: // Reset
+                    resetKitEditor(event.getInventory());
+                    player.sendMessage(ChatColor.YELLOW + "Inventario svuotato.");
                     break;
 
                 case 52: // Annulla
@@ -291,9 +311,8 @@ public class KitGUI implements Listener {
                     player.sendMessage(ChatColor.YELLOW + "Modifiche annullate.");
                     break;
 
-                case 51: // Reset
-                    resetKitEditor(event.getInventory());
-                    player.sendMessage(ChatColor.YELLOW + "Inventario svuotato.");
+                case 53: // Salva
+                    saveKitFromGUI(player, event.getInventory());
                     break;
             }
         }
@@ -301,10 +320,33 @@ public class KitGUI implements Listener {
     }
 
     /**
+     * Carica il kit salvato nell'editor
+     */
+    private void loadSavedKitIntoEditor(Player player, Inventory gui) {
+        // Crea un inventario temporaneo per caricare il kit
+        ItemStack[] originalContents = player.getInventory().getContents().clone();
+        ItemStack[] originalArmor = player.getInventory().getArmorContents().clone();
+
+        // Carica il kit nell'inventario del giocatore temporaneamente
+        plugin.getKitManager().loadPlayerKit(player);
+
+        // Copia dall'inventario alla GUI
+        copyPlayerInventoryToGUI(player, gui);
+
+        // Ripristina l'inventario originale del giocatore
+        player.getInventory().setContents(originalContents);
+        player.getInventory().setArmorContents(originalArmor);
+    }
+
+    /**
      * Salva il kit dalla GUI
      */
     private void saveKitFromGUI(Player player, Inventory gui) {
-        // Copia il contenuto della GUI nell'inventario del giocatore
+        // Salva l'inventario attuale del giocatore
+        ItemStack[] originalContents = player.getInventory().getContents().clone();
+        ItemStack[] originalArmor = player.getInventory().getArmorContents().clone();
+
+        // Copia il contenuto della GUI nell'inventario del giocatore temporaneamente
         player.getInventory().clear();
         player.getInventory().setArmorContents(new ItemStack[4]);
 
@@ -321,6 +363,10 @@ public class KitGUI implements Listener {
 
         // Salva il kit
         plugin.getKitManager().savePlayerKit(player);
+
+        // Ripristina l'inventario originale del giocatore
+        player.getInventory().setContents(originalContents);
+        player.getInventory().setArmorContents(originalArmor);
 
         // Marca la sessione come salvata
         KitEditSession session = editSessions.get(player.getUniqueId());
@@ -347,14 +393,26 @@ public class KitGUI implements Listener {
      */
     private static class KitEditSession {
         private final Player player;
+        private final ItemStack[] originalInventory;
+        private final ItemStack[] originalArmor;
         private boolean saved = false;
 
         public KitEditSession(Player player) {
             this.player = player;
+            // Salva backup dell'inventario originale
+            this.originalInventory = player.getInventory().getContents().clone();
+            this.originalArmor = player.getInventory().getArmorContents().clone();
         }
 
         public boolean wasSaved() { return saved; }
         public void setSaved(boolean saved) { this.saved = saved; }
         public Player getPlayer() { return player; }
+
+        public void restorePlayerInventory() {
+            if (player != null && player.isOnline()) {
+                player.getInventory().setContents(originalInventory);
+                player.getInventory().setArmorContents(originalArmor);
+            }
+        }
     }
 }

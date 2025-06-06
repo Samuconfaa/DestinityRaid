@@ -134,8 +134,6 @@ public class PlayerListener implements Listener {
         // Pulisci i dati del DeathManager
         plugin.getDeathManager().onPlayerQuit(player);
 
-        // Pulisci i dati del KitManager
-        plugin.getKitManager().onPlayerQuit(player);
     }
 
     // Previeni il drop della Nether Star

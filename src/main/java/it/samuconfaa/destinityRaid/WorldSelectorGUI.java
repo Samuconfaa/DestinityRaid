@@ -173,11 +173,15 @@ public class WorldSelectorGUI implements Listener {
                 // Inizializza il sistema di morti per il raid
                 plugin.getDeathManager().onRaidStart(player);
 
-                // Equipaggia il kit del giocatore
-                String playerKit = plugin.getKitManager().getPlayerKit(player);
-                plugin.getKitManager().giveKit(player, playerKit);
+                // PRIMA svuota l'inventario, POI equipaggia il kit del giocatore
+                player.getInventory().clear();
+                player.getInventory().setArmorContents(new ItemStack[4]);
+
+                // Carica il kit personalizzato del giocatore (ora ogni player ha il suo kit)
+                plugin.getKitManager().loadPlayerKit(player);
 
                 player.sendMessage(ChatColor.GREEN + "Raid iniziato in " + worldInfo.getDisplayName() + "!");
+                player.sendMessage(ChatColor.YELLOW + "Il tuo kit personalizzato è stato equipaggiato!");
                 player.sendMessage(ChatColor.YELLOW + "Ricorda: hai solo 2 vite, poi diventerai spettatore!");
             }
         }

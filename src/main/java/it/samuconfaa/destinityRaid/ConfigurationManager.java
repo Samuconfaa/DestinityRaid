@@ -76,6 +76,11 @@ public class ConfigurationManager {
         return config.getString("hub.world_name", "world");
     }
 
+    // METODO MANCANTE: Mondo per l'editing dei kit
+    public static String getKitEditWorld() {
+        return config.getString("kit.edit_world", "world");
+    }
+
     // Metodi per il kit predefinito
     public static boolean isDefaultKitEnabled() {
         return config.getBoolean("default_kit.enabled", true);
@@ -146,6 +151,7 @@ public class ConfigurationManager {
         return config.getStringList("global_console_commands");
     }
 
+
     public static class WorldInfo {
         private String worldName;
         private String displayName;
@@ -172,5 +178,21 @@ public class ConfigurationManager {
         public double getExitX() { return exitX; }
         public double getExitY() { return exitY; }
         public double getExitZ() { return exitZ; }
+    }
+
+    public static class DefaultKitArmor {
+        private final String helmet, chestplate, leggings, boots;
+
+        public DefaultKitArmor(String helmet, String chestplate, String leggings, String boots) {
+            this.helmet = helmet;
+            this.chestplate = chestplate;
+            this.leggings = leggings;
+            this.boots = boots;
+        }
+
+        public String getHelmet() { return helmet; }
+        public String getChestplate() { return chestplate; }
+        public String getLeggings() { return leggings; }
+        public String getBoots() { return boots; }
     }
 }

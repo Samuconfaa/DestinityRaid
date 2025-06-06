@@ -7,8 +7,6 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.Set;
-
 public class KitCommand implements CommandExecutor {
     private final DestinityRaid plugin;
 
@@ -25,54 +23,38 @@ public class KitCommand implements CommandExecutor {
 
         Player player = (Player) sender;
 
+        // Controlla se il giocatore è nel mondo consentito per la modifica dei kit
+        String allowedWorld = ConfigurationManager.getKitEditWorld();
+        if (!player.getWorld().getName().equals(allowedWorld)) {
+            player.sendMessage(ChatColor.RED + "Puoi modificare il tuo kit solo nel mondo: " + allowedWorld + "!");
+            return true;
+        }
+
+        // Se non ci sono argomenti, apri la GUI
         if (args.length == 0) {
-            showKitHelp(player);
+            plugin.getKitGUI().openKitMenu(player);
             return true;
         }
 
         String subCommand = args[0].toLowerCase();
 
         switch (subCommand) {
-            case "list":
-                showAvailableKits(player);
+            case "gui":
+            case "menu":
+                plugin.getKitGUI().openKitMenu(player);
                 break;
 
-            case "select":
-                if (args.length < 2) {
-                    player.sendMessage(ChatColor.RED + "Uso: /kit select <nome_kit>");
-                    return true;
-                }
-                selectKit(player, args[1]);
-                break;
-
-            case "current":
-                showCurrentKit(player);
-                break;
-
-            case "preview":
-                if (args.length < 2) {
-                    player.sendMessage(ChatColor.RED + "Uso: /kit preview <nome_kit>");
-                    return true;
-                }
-                previewKit(player, args[1]);
-                break;
-
-            case "save":
-                if (args.length < 2) {
-                    player.sendMessage(ChatColor.RED + "Uso: /kit save <nome_kit>");
-                    return true;
-                }
-                saveCurrentKit(player, args[1]);
-                break;
-
-            case "equip":
-                if (args.length < 2) {
-                    // Equipaggia il kit corrente del giocatore
-                    equipCurrentKit(player);
+            case "load":
+                // Comando rapido per caricare il kit
+                if (plugin.getKitManager().hasPlayerKit(player)) {
+                    plugin.getKitManager().loadPlayerKit(player);
                 } else {
-                    // Equipaggia un kit specifico
-                    equipSpecificKit(player, args[1]);
+                    player.sendMessage(ChatColor.RED + "Non hai un kit salvato!");
                 }
+                break;
+
+            case "help":
+                showKitHelp(player);
                 break;
 
             default:
@@ -85,106 +67,10 @@ public class KitCommand implements CommandExecutor {
 
     private void showKitHelp(Player player) {
         player.sendMessage(ChatColor.GOLD + "=== Comandi Kit ===");
-        player.sendMessage(ChatColor.YELLOW + "/kit list - Mostra tutti i kit disponibili");
-        player.sendMessage(ChatColor.YELLOW + "/kit select <nome> - Seleziona un kit per i raid");
-        player.sendMessage(ChatColor.YELLOW + "/kit current - Mostra il tuo kit attuale");
-        player.sendMessage(ChatColor.YELLOW + "/kit preview <nome> - Anteprima di un kit");
-        player.sendMessage(ChatColor.YELLOW + "/kit save <nome> - Salva il tuo inventario come kit");
-        player.sendMessage(ChatColor.YELLOW + "/kit equip [nome] - Equipaggia un kit");
-    }
-
-    private void showAvailableKits(Player player) {
-        Set<String> kits = plugin.getKitManager().getAvailableKits();
-
-        if (kits.isEmpty()) {
-            player.sendMessage(ChatColor.RED + "Nessun kit disponibile!");
-            return;
-        }
-
-        player.sendMessage(ChatColor.GOLD + "=== Kit Disponibili ===");
-        String currentKit = plugin.getKitManager().getPlayerKit(player);
-
-        for (String kitId : kits) {
-            String displayName = plugin.getKitManager().getKitDisplayName(kitId);
-            String marker = kitId.equals(currentKit) ? ChatColor.GREEN + " [SELEZIONATO]" : "";
-            player.sendMessage(ChatColor.YELLOW + "- " + displayName + " (" + kitId + ")" + marker);
-        }
-    }
-
-    private void selectKit(Player player, String kitId) {
-        kitId = kitId.toLowerCase();
-
-        if (!plugin.getKitManager().kitExists(kitId)) {
-            player.sendMessage(ChatColor.RED + "Kit '" + kitId + "' non trovato!");
-            player.sendMessage(ChatColor.GRAY + "Usa '/kit list' per vedere i kit disponibili.");
-            return;
-        }
-
-        plugin.getKitManager().setPlayerKit(player, kitId);
-    }
-
-    private void showCurrentKit(Player player) {
-        String currentKit = plugin.getKitManager().getPlayerKit(player);
-        String displayName = plugin.getKitManager().getKitDisplayName(currentKit);
-
-        player.sendMessage(ChatColor.GREEN + "Il tuo kit attuale è: " + ChatColor.YELLOW + displayName +
-                ChatColor.GREEN + " (" + currentKit + ")");
-    }
-
-    private void previewKit(Player player, String kitId) {
-        kitId = kitId.toLowerCase();
-
-        if (!plugin.getKitManager().kitExists(kitId)) {
-            player.sendMessage(ChatColor.RED + "Kit '" + kitId + "' non trovato!");
-            return;
-        }
-
-        String displayName = plugin.getKitManager().getKitDisplayName(kitId);
-        player.sendMessage(ChatColor.GOLD + "=== Anteprima Kit: " + displayName + " ===");
-
-        // Per ora mostra solo il nome, in futuro si potrebbe implementare
-        // una GUI per mostrare tutti gli oggetti del kit
-        player.sendMessage(ChatColor.GRAY + "Usa '/kit equip " + kitId + "' per testare questo kit!");
-        player.sendMessage(ChatColor.GRAY + "Attenzione: questo sostituirà il tuo inventario attuale!");
-    }
-
-    private void saveCurrentKit(Player player, String kitName) {
-        // Controlla se il giocatore è nel mondo hub
-        String hubWorldName = ConfigurationManager.getHubWorldName();
-        if (!player.getWorld().getName().equals(hubWorldName)) {
-            player.sendMessage(ChatColor.RED + "Puoi salvare kit solo nel mondo hub!");
-            return;
-        }
-
-        // Controlla se l'inventario non è vuoto
-        if (player.getInventory().isEmpty()) {
-            player.sendMessage(ChatColor.RED + "Il tuo inventario è vuoto! Non puoi salvare un kit vuoto.");
-            return;
-        }
-
-        plugin.getKitManager().savePlayerKit(player, kitName);
-    }
-
-    private void equipCurrentKit(Player player) {
-        String currentKit = plugin.getKitManager().getPlayerKit(player);
-        plugin.getKitManager().giveKit(player, currentKit);
-    }
-
-    private void equipSpecificKit(Player player, String kitId) {
-        kitId = kitId.toLowerCase();
-
-        if (!plugin.getKitManager().kitExists(kitId)) {
-            player.sendMessage(ChatColor.RED + "Kit '" + kitId + "' non trovato!");
-            return;
-        }
-
-        // Controlla se il giocatore è nel mondo hub
-        String hubWorldName = ConfigurationManager.getHubWorldName();
-        if (!player.getWorld().getName().equals(hubWorldName)) {
-            player.sendMessage(ChatColor.RED + "Puoi equipaggiare kit solo nel mondo hub!");
-            return;
-        }
-
-        plugin.getKitManager().giveKit(player, kitId);
+        player.sendMessage(ChatColor.YELLOW + "/kit - Apre il menu di gestione kit");
+        player.sendMessage(ChatColor.YELLOW + "/kit gui - Apre il menu di gestione kit");
+        player.sendMessage(ChatColor.YELLOW + "/kit load - Carica rapidamente il tuo kit");
+        player.sendMessage(ChatColor.YELLOW + "/kit help - Mostra questo aiuto");
+        player.sendMessage(ChatColor.GRAY + "Nota: Puoi modificare il kit solo nel mondo: " + ConfigurationManager.getKitEditWorld());
     }
 }

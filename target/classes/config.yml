@@ -1,6 +1,11 @@
 hub:
   world_name: "world"
 
+# Configurazione kit
+kit:
+  # Mondo in cui è possibile modificare i kit
+  edit_world: "world"
+
 # Messaggi del plugin
 messaggi:
   no_permission: "&cNon hai il permesso per eseguire questo comando!"
@@ -17,7 +22,7 @@ party:
   max_members: 6
   require_leader: true  # Solo il leader può iniziare un raid
 
-# Kit predefinito che viene dato ai giocatori che non hanno selezionato un kit
+# Kit predefinito che viene dato ai giocatori che non hanno un kit salvato
 # Formato: MATERIAL:QUANTITA:DURABILITY:INCANTESIMI
 default_kit:
   enabled: true
@@ -28,6 +33,7 @@ default_kit:
     - "GOLDEN_APPLE:3:0"
     - "SHIELD:1:0"
     - "BOW:1:0:power:2"
+    - "ARROW:64:0"
   # Armatura separata per maggiore chiarezza
   armor:
     helmet: "IRON_HELMET:1:0:protection:1"
