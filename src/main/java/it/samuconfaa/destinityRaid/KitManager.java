@@ -84,7 +84,7 @@ public class KitManager {
         String basePath = "players." + playerUUID;
 
         if (!kitsConfig.contains(basePath)) {
-            // Se non ha un kit salvato, dagli un kit base
+            // Se non ha un kit salvato, dagli il kit predefinito dalla config
             giveDefaultKit(player);
             return;
         }
@@ -152,26 +152,72 @@ public class KitManager {
     }
 
     /**
-     * Da un kit base ai nuovi giocatori
+     * Applica il kit predefinito al giocatore dalla configurazione
      */
     private void giveDefaultKit(Player player) {
+        // Controlla se il kit predefinito è abilitato
+        if (!ConfigurationManager.isDefaultKitEnabled()) {
+            player.sendMessage(ChatColor.YELLOW + "Nessun kit predefinito disponibile.");
+            return;
+        }
+
         PlayerInventory inventory = player.getInventory();
 
         // Pulisci inventario
         inventory.clear();
         inventory.setArmorContents(new ItemStack[4]);
 
-        // Kit base semplice
-        inventory.setHelmet(new ItemStack(Material.LEATHER_HELMET));
-        inventory.setChestplate(new ItemStack(Material.LEATHER_CHESTPLATE));
-        inventory.setLeggings(new ItemStack(Material.LEATHER_LEGGINGS));
-        inventory.setBoots(new ItemStack(Material.LEATHER_BOOTS));
+        // Applica armatura dal config
+        Map<String, String> armor = ConfigurationManager.getDefaultKitArmor();
+        if (armor.get("helmet") != null) {
+            inventory.setHelmet(parseItemString(armor.get("helmet")));
+        }
+        if (armor.get("chestplate") != null) {
+            inventory.setChestplate(parseItemString(armor.get("chestplate")));
+        }
+        if (armor.get("leggings") != null) {
+            inventory.setLeggings(parseItemString(armor.get("leggings")));
+        }
+        if (armor.get("boots") != null) {
+            inventory.setBoots(parseItemString(armor.get("boots")));
+        }
 
-        inventory.setItem(0, new ItemStack(Material.WOODEN_SWORD));
-        inventory.setItem(1, new ItemStack(Material.BREAD, 8));
-        inventory.setItem(2, new ItemStack(Material.WOODEN_PICKAXE));
+        // Applica oggetti dall'inventario predefinito
+        List<String> defaultItems = ConfigurationManager.getDefaultKitItems();
+        int slot = 0;
+        for (String itemString : defaultItems) {
+            if (slot >= 36) break; // Non superare i 36 slot dell'inventario
 
-        player.sendMessage(ChatColor.YELLOW + "Ti è stato dato un kit base. Personalizzalo e salvalo!");
+            ItemStack item = parseItemString(itemString);
+            if (item != null) {
+                inventory.setItem(slot, item);
+                slot++;
+            }
+        }
+
+        String kitName = ConfigurationManager.getDefaultKitDisplayName();
+        player.sendMessage(ChatColor.GOLD + "✓ Ti è stato dato il kit: " + ChatColor.YELLOW + kitName);
+        player.sendMessage(ChatColor.AQUA + "Personalizzalo e salvalo usando /kit!");
+    }
+
+    /**
+     * Applica il kit predefinito e lo salva automaticamente per il giocatore
+     * Utilizzato quando un giocatore entra per la prima volta
+     */
+    public void giveAndSaveDefaultKit(Player player) {
+        // Applica il kit predefinito
+        giveDefaultKit(player);
+
+        // Salva automaticamente il kit appena applicato
+        if (ConfigurationManager.isDefaultKitEnabled()) {
+            savePlayerKit(player);
+
+            String kitName = ConfigurationManager.getDefaultKitDisplayName();
+            player.sendMessage(ChatColor.GREEN + "✓ Il kit " + ChatColor.YELLOW + kitName +
+                    ChatColor.GREEN + " è stato salvato come tuo kit personalizzato!");
+            player.sendMessage(ChatColor.GRAY + "Puoi modificarlo in qualsiasi momento con " +
+                    ChatColor.WHITE + "/kit" + ChatColor.GRAY + "!");
+        }
     }
 
     /**

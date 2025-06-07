@@ -34,6 +34,42 @@ public class PlayerListener implements Listener {
             player.getInventory().clear();
             giveCompass(player);
         }
+        if (!player.hasPlayedBefore()) {
+            // Applica il kit predefinito dalla configurazione
+            applyDefaultKitToNewPlayer(player);
+        }
+    }
+
+    /**
+     * Applica il kit predefinito ai nuovi giocatori
+     */
+    private void applyDefaultKitToNewPlayer(Player player) {
+        // Attendi un tick per assicurarsi che il giocatore sia completamente caricato
+        plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+
+            // Controlla se il kit predefinito è abilitato
+            if (!ConfigurationManager.isDefaultKitEnabled()) {
+                return;
+            }
+
+            // Se il giocatore non ha già un kit salvato (dovrebbe essere sempre vero per i nuovi giocatori)
+            if (!plugin.getKitManager().hasPlayerKit(player)) {
+
+                // Applica e salva il kit predefinito
+                plugin.getKitManager().giveAndSaveDefaultKit(player);
+
+                // Messaggio di benvenuto personalizzato
+                player.sendMessage("");
+                player.sendMessage(ChatColor.GOLD + "=== " + ChatColor.YELLOW + "Benvenuto su DestinyRaid!" + ChatColor.GOLD + " ===");
+                player.sendMessage(ChatColor.GREEN + "✓ Ti è stato assegnato un kit iniziale!");
+                player.sendMessage(ChatColor.AQUA + "Usa " + ChatColor.WHITE + "/kit" + ChatColor.AQUA + " per personalizzarlo");
+                player.sendMessage(ChatColor.GRAY + "Buona fortuna nella tua avventura!");
+                player.sendMessage("");
+
+                plugin.getLogger().info("Kit predefinito assegnato al nuovo giocatore: " + player.getName());
+            }
+
+        }, 10L); // Attende 0.5 secondi (10 tick)
     }
 
     @EventHandler

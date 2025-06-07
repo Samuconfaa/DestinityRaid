@@ -8,96 +8,19 @@ kit:
 
 # Messaggi del plugin
 messaggi:
-  # Messaggi generali
   no_permission: "&cNon hai il permesso per eseguire questo comando!"
   reload_done: "&aConfig ricaricata con successo!"
-
-  # Messaggi party
   party_not_found: "&cNon sei in una party o la party non è stata trovata!"
   party_too_small: "&cLa tua party deve avere almeno {min} membri per iniziare un raid!"
   party_too_big: "&cLa tua party ha troppi membri! Massimo {max} membri per raid."
   not_party_leader: "&cSolo il leader della party può iniziare un raid!"
   party_members_not_online: "&cTutti i membri della party devono essere online per iniziare un raid!"
 
-  # Messaggi statistiche
+  # Nuovi messaggi per statistiche
   stats_reset_success: "&aStatistiche di &e{player} &aresettate con successo!"
   stats_reset_player_not_found: "&cGiocatore &e{player} &cnon trovato o senza statistiche!"
   stats_reset_notification: "&6Le tue statistiche raid sono state resettate da un amministratore."
   no_stats_available: "&c{player} non ha ancora completato nessun raid!"
-
-  # Messaggi kit
-  kit_saved: "&aIl tuo kit è stato salvato!"
-  kit_loaded: "&aKit caricato!"
-  kit_deleted: "&6Il tuo kit è stato eliminato!"
-  kit_deleted_success: "&a✓ Kit eliminato con successo!"
-  kit_no_kit_to_delete: "&c✗ Non hai un kit da eliminare!"
-  kit_given_default: "&6Ti è stato dato un kit base. Personalizzalo e salvalo!"
-  kit_parsing_error: "&cErrore nel caricamento del kit!"
-
-  # Messaggi GUI Kit Manager
-  gui_kit_manager_title: "&5✦ &6Kit Manager &5✦"
-  gui_kit_status_title: "&6⚡ &lStato Kit"
-  gui_kit_status_saved: "&a✓ Kit salvato e pronto"
-  gui_kit_status_no_kit: "&c✗ Nessun kit salvato"
-  gui_kit_status_last_update: "&7Ultimo aggiornamento:"
-  gui_kit_status_ready_lore: "&bIl tuo equipaggiamento personalizzato"
-  gui_kit_status_ready_lore2: "&bè stato salvato con successo!"
-  gui_kit_status_create_lore: "&7Crea il tuo primo kit personalizzato"
-  gui_kit_status_create_lore2: "&7per iniziare l'avventura!"
-  gui_kit_status_customize: "&e⚡ Personalizza il tuo equipaggiamento!"
-
-  gui_edit_kit_title: "&e⚒ &lModifica Kit"
-  gui_edit_kit_description: "&7Apri l'editor per personalizzare"
-  gui_edit_kit_description2: "&7il tuo equipaggiamento"
-  gui_edit_kit_features: "&fPuoi personalizzare:"
-  gui_edit_kit_armor: "&9  ⚔ Armatura completa"
-  gui_edit_kit_inventory: "&a  🎒 Inventario principale"
-  gui_edit_kit_hotbar: "&6  ⭐ Barra degli oggetti"
-  gui_edit_kit_load_saved: "&dIl tuo kit salvato verrà caricato"
-  gui_edit_kit_load_saved2: "&dnell'editor per le modifiche"
-  gui_edit_kit_copy_current: "&bIl tuo inventario attuale verrà"
-  gui_edit_kit_copy_current2: "&bcopiato come base di partenza"
-
-  gui_delete_kit_title: "&c🗑 &lElimina Kit"
-  gui_delete_kit_description: "&7Rimuovi definitivamente"
-  gui_delete_kit_description2: "&7il tuo kit salvato"
-  gui_delete_kit_warning: "&c⚠ &lATTENZIONE &c⚠"
-  gui_delete_kit_irreversible: "&cQuesta azione è irreversibile!"
-  gui_delete_kit_lost: "&4Tutto il tuo equipaggiamento"
-  gui_delete_kit_lost2: "&4personalizzato andrà perso"
-  gui_delete_kit_no_kit: "&7Nessun kit da eliminare"
-  gui_delete_kit_create_first: "&8Crea prima un kit per poterlo"
-  gui_delete_kit_create_first2: "&8eliminare in seguito"
-
-  gui_close_title: "&7✖ &lChiudi"
-  gui_close_description: "&8Torna al gioco"
-  gui_menu_closed: "&7Menu chiuso."
-
-  # Messaggi GUI Kit Editor
-  gui_editor_title: "&2⚒ Editor Kit - &6{player}"
-  gui_editor_opened: "&e⚒ Editor kit aperto! Modifica il tuo equipaggiamento e clicca &aSalva&e quando hai finito."
-  gui_editor_kit_loaded: "&a✓ Il tuo kit salvato è stato caricato nell'editor!"
-  gui_editor_inventory_copied: "&6✓ Il tuo inventario attuale è stato copiato nell'editor."
-  gui_editor_closed: "&e⚒ Editor kit chiuso. Inventario ripristinato."
-
-  gui_reset_title: "&6🔄 &lReset"
-  gui_reset_description: "&7Svuota completamente l'inventario"
-  gui_reset_removes: "&eRimuove tutti gli oggetti dall'editor"
-  gui_reset_no_save: "&c⚠ Non salva automaticamente"
-  gui_reset_done: "&6🔄 Inventario dell'editor svuotato."
-
-  gui_cancel_title: "&c✖ &lAnnulla"
-  gui_cancel_description: "&7Esci senza salvare le modifiche"
-  gui_cancel_warning: "&cTutte le modifiche andranno perse!"
-  gui_cancel_restore: "&eIl tuo inventario verrà ripristinato"
-  gui_cancel_done: "&e✖ Modifiche annullate, inventario ripristinato."
-
-  gui_save_title: "&a✓ &lSalva Kit"
-  gui_save_description: "&7Salva l'equipaggiamento personalizzato"
-  gui_save_replaces: "&aSostituisce il kit precedente"
-  gui_save_inventory_safe: "&bIl tuo inventario attuale rimane invariato"
-  gui_save_success: "&a✓ Kit salvato con successo!"
-  gui_save_ready: "&bIl tuo equipaggiamento personalizzato è ora pronto!"
 
 # Configurazione party
 party:
