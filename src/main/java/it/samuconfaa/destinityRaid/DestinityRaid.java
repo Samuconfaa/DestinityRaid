@@ -1,5 +1,6 @@
 package it.samuconfaa.destinityRaid;
 
+import org.bukkit.Bukkit;
 import org.bukkit.plugin.java.JavaPlugin;
 
 public final class DestinityRaid extends JavaPlugin {
@@ -35,7 +36,12 @@ public final class DestinityRaid extends JavaPlugin {
         getCommand("leaderboard").setExecutor(new LeaderboardCommand(this));
         getCommand("stats").setExecutor(new StatsCommand(this));
 
-
+        if (Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null) {
+            new RaidPlaceholders(this).register();
+            getLogger().info("PlaceholderAPI expansion registered!");
+        } else {
+            getLogger().warning("PlaceholderAPI not found!");
+        }
         getLogger().info("DestinityRaid plugin abilitato!");
     }
 

@@ -95,15 +95,27 @@ public class RaidPlaceholders extends PlaceholderExpansion {
         // Placeholder per classifiche tempi migliori: %destinityraid_leaderboard_[MONDO]_[POSIZIONE]_name%
         if (params.startsWith("leaderboard_") && params.contains("_") && params.endsWith("_name")) {
             try {
-                String[] parts = params.split("_");
-                if (parts.length >= 4) {
-                    String worldKey = parts[1];
-                    int position = Integer.parseInt(parts[2]) - 1;
-                    List<RaidStatsManager.PlayerRankingEntry> leaderboard = statsManager.getWorldBestTimesLeaderboard(worldKey, 50);
+                // Rimuovi "leaderboard_" dall'inizio
+                String remaining = params.substring(12); // "leaderboard_".length() = 12
 
-                    if (position >= 0 && position < leaderboard.size()) {
-                        return leaderboard.get(position).getPlayerName();
-                    }
+                // Trova l'ultimo underscore prima di "_name"
+                int lastUnderscoreIndex = remaining.lastIndexOf("_name");
+                if (lastUnderscoreIndex == -1) return "ERRORE";
+
+                String withoutName = remaining.substring(0, lastUnderscoreIndex);
+
+                // Trova l'ultimo underscore per la posizione
+                int positionUnderscoreIndex = withoutName.lastIndexOf("_");
+                if (positionUnderscoreIndex == -1) return "ERRORE";
+
+                String worldKey = withoutName.substring(0, positionUnderscoreIndex);
+                String positionStr = withoutName.substring(positionUnderscoreIndex + 1);
+
+                int position = Integer.parseInt(positionStr) - 1;
+                List<RaidStatsManager.PlayerRankingEntry> leaderboard = statsManager.getWorldBestTimesLeaderboard(worldKey, 50);
+
+                if (position >= 0 && position < leaderboard.size()) {
+                    return leaderboard.get(position).getPlayerName();
                 }
                 return "-";
             } catch (NumberFormatException e) {
@@ -111,18 +123,30 @@ public class RaidPlaceholders extends PlaceholderExpansion {
             }
         }
 
-        // Placeholder per valori classifica tempi migliori: %destinityraid_leaderboard_[MONDO]_[POSIZIONE]_time%
+// Placeholder per valori classifica tempi migliori: %destinityraid_leaderboard_[MONDO]_[POSIZIONE]_time%
         if (params.startsWith("leaderboard_") && params.contains("_") && params.endsWith("_time")) {
             try {
-                String[] parts = params.split("_");
-                if (parts.length >= 4) {
-                    String worldKey = parts[1];
-                    int position = Integer.parseInt(parts[2]) - 1;
-                    List<RaidStatsManager.PlayerRankingEntry> leaderboard = statsManager.getWorldBestTimesLeaderboard(worldKey, 50);
+                // Rimuovi "leaderboard_" dall'inizio
+                String remaining = params.substring(12);
 
-                    if (position >= 0 && position < leaderboard.size()) {
-                        return leaderboard.get(position).getFormattedValue();
-                    }
+                // Trova l'ultimo underscore prima di "_time"
+                int lastUnderscoreIndex = remaining.lastIndexOf("_time");
+                if (lastUnderscoreIndex == -1) return "ERRORE";
+
+                String withoutTime = remaining.substring(0, lastUnderscoreIndex);
+
+                // Trova l'ultimo underscore per la posizione
+                int positionUnderscoreIndex = withoutTime.lastIndexOf("_");
+                if (positionUnderscoreIndex == -1) return "ERRORE";
+
+                String worldKey = withoutTime.substring(0, positionUnderscoreIndex);
+                String positionStr = withoutTime.substring(positionUnderscoreIndex + 1);
+
+                int position = Integer.parseInt(positionStr) - 1;
+                List<RaidStatsManager.PlayerRankingEntry> leaderboard = statsManager.getWorldBestTimesLeaderboard(worldKey, 50);
+
+                if (position >= 0 && position < leaderboard.size()) {
+                    return leaderboard.get(position).getFormattedValue();
                 }
                 return "-";
             } catch (NumberFormatException e) {

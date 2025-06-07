@@ -2,7 +2,7 @@ name: DestinityRaid
 version: '1.0'
 main: it.samuconfaa.destinityRaid.DestinityRaid
 api-version: '1.20'
-depend: []
+depend: [PlaceholderAPI]
 softdepend: [Parties]
 authors: [SamuConfaa]
 description: Plugin per gestire raid con party e statistiche
@@ -13,30 +13,103 @@ commands:
     usage: /raid [reload|stats]
     permission: raid.use
     permission-message: Non hai il permesso per usare questo comando!
+    aliases: []
+
   kit:
     description: Gestione kit per i raid
-    usage: /kit [list|select|current|preview|save|equip]
+    usage: /kit [gui|menu|help]
     permission: kit.use
     permission-message: Non hai il permesso per usare questo comando!
-  resetstats:
+    aliases: [kits]
 
   leaderboard:
+    description: Visualizza le classifiche dei raid
+    usage: /leaderboard [total|mondo <nome>|help]
+    permission: leaderboard.use
+    permission-message: Non hai il permesso per visualizzare le classifiche!
+    aliases: [lb, classifica, ranking]
 
   stats:
+    description: Visualizza le statistiche raid di un giocatore
+    usage: /stats [giocatore]
+    permission: stats.use
+    permission-message: Non hai il permesso per visualizzare le statistiche!
+    aliases: [statistiche, stat]
+
+  resetstats:
+    description: Reset delle statistiche raid
+    usage: /resetstats
+    permission: raid.admin
+    permission-message: Non hai il permesso per resettare le statistiche!
 
 permissions:
+  # Permessi base
   raid.use:
     description: Permesso base per usare i comandi raid
     default: true
-  raid.reload:
-    description: Permesso per ricaricare la configurazione
-    default: op
+    children:
+      - raid.stats
+
   raid.stats:
-    description: Permesso per vedere le statistiche
+    description: Permesso per vedere le statistiche raid
     default: true
+
+  raid.reload:
+    description: Permesso per ricaricare la configurazione del plugin
+    default: op
+
+  raid.admin:
+    description: Permessi amministrativi per il plugin raid
+    default: op
+    children:
+      - raid.use
+      - raid.reload
+      - raid.stats
+      - resetstats.use
+
+  # Permessi kit
   kit.use:
     description: Permesso base per usare i comandi kit
     default: true
+
   kit.save:
     description: Permesso per salvare nuovi kit
     default: true
+
+  kit.admin:
+    description: Permessi amministrativi per i kit
+    default: op
+    children:
+      - kit.use
+      - kit.save
+
+  # Permessi leaderboard
+  leaderboard.use:
+    description: Permesso per visualizzare le classifiche
+    default: true
+
+  # Permessi statistiche
+  stats.use:
+    description: Permesso per visualizzare le statistiche
+    default: true
+
+  stats.others:
+    description: Permesso per visualizzare le statistiche di altri giocatori
+    default: true
+
+  # Permessi reset statistiche
+  resetstats.use:
+    description: Permesso per resettare le statistiche
+    default: op
+
+  # Permesso globale per tutto
+  destinityraid.*:
+    description: Accesso completo a tutte le funzionalità del plugin
+    default: op
+    children:
+      - raid.admin
+      - kit.admin
+      - leaderboard.use
+      - stats.use
+      - stats.others
+      - resetstats.use
