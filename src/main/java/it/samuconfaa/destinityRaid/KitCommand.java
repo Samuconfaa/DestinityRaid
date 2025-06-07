@@ -44,14 +44,6 @@ public class KitCommand implements CommandExecutor {
                 plugin.getKitGUI().openKitMenu(player);
                 break;
 
-            case "load":
-                // Comando rapido per caricare il kit
-                if (plugin.getKitManager().hasPlayerKit(player)) {
-                    plugin.getKitManager().loadPlayerKit(player);
-                } else {
-                    player.sendMessage(ChatColor.RED + "Non hai un kit salvato!");
-                }
-                break;
 
             case "help":
                 showKitHelp(player);
@@ -69,7 +61,6 @@ public class KitCommand implements CommandExecutor {
         player.sendMessage(ChatColor.GOLD + "=== Comandi Kit ===");
         player.sendMessage(ChatColor.YELLOW + "/kit - Apre il menu di gestione kit");
         player.sendMessage(ChatColor.YELLOW + "/kit gui - Apre il menu di gestione kit");
-        player.sendMessage(ChatColor.YELLOW + "/kit load - Carica rapidamente il tuo kit");
         player.sendMessage(ChatColor.YELLOW + "/kit help - Mostra questo aiuto");
         player.sendMessage(ChatColor.GRAY + "Nota: Puoi modificare il kit solo nel mondo: " + ConfigurationManager.getKitEditWorld());
     }
