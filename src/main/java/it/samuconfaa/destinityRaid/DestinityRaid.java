@@ -31,6 +31,10 @@ public final class DestinityRaid extends JavaPlugin {
         getServer().getPluginManager().registerEvents(deathManager, this);
         getCommand("raid").setExecutor(new RaidCommand(this));
         getCommand("kit").setExecutor(new KitCommand(this));
+        getCommand("resetstats").setExecutor(new ResetStatsCommand(this));
+        getCommand("leaderboard").setExecutor(new LeaderboardCommand(this));
+        getCommand("stats").setExecutor(new StatsCommand(this));
+
 
         getLogger().info("DestinityRaid plugin abilitato!");
     }

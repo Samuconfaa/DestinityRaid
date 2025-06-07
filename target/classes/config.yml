@@ -1,10 +1,10 @@
 hub:
-  world_name: "world"
+  world_name: "piatto"
 
 # Configurazione kit
 kit:
   # Mondo in cui è possibile modificare i kit
-  edit_world: "world"
+  edit_world: "piatto"
 
 # Messaggi del plugin
 messaggi:
@@ -15,6 +15,12 @@ messaggi:
   party_too_big: "&cLa tua party ha troppi membri! Massimo {max} membri per raid."
   not_party_leader: "&cSolo il leader della party può iniziare un raid!"
   party_members_not_online: "&cTutti i membri della party devono essere online per iniziare un raid!"
+
+  # Nuovi messaggi per statistiche
+  stats_reset_success: "&aStatistiche di &e{player} &aresettate con successo!"
+  stats_reset_player_not_found: "&cGiocatore &e{player} &cnon trovato o senza statistiche!"
+  stats_reset_notification: "&6Le tue statistiche raid sono state resettate da un amministratore."
+  no_stats_available: "&c{player} non ha ancora completato nessun raid!"
 
 # Configurazione party
 party:
@@ -50,16 +56,16 @@ global_console_commands:
 # Configurazione dei mondi
 worlds:
   mondo1:
-    world_name: "world_nether"
+    world_name: "Cybertrunk_City"
     display_name: "Nether Adventure"
     spawn:
-      x: 0.5
-      y: 64.0
-      z: 0.5
+      x: 485
+      y: 208
+      z: -307
     exit:
-      x: 10.5
-      y: 64.0
-      z: 10.5
+      x: 490
+      y: 208
+      z: -307
     # Comandi specifici per questo mondo
     # Placeholder disponibili: {player}, {world}, {uuid}
     console_commands:

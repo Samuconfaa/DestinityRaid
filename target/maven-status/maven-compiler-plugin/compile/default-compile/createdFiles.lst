@@ -5,12 +5,17 @@ it\samuconfaa\destinityRaid\RaidCommand$RaidInfo.class
 it\samuconfaa\destinityRaid\DeathManager.class
 it\samuconfaa\destinityRaid\KitGUI.class
 it\samuconfaa\destinityRaid\WorldSelectorGUI.class
+it\samuconfaa\destinityRaid\LeaderboardCommand.class
+it\samuconfaa\destinityRaid\StatsCommand.class
 it\samuconfaa\destinityRaid\WorldManager.class
 it\samuconfaa\destinityRaid\PlayerListener.class
 it\samuconfaa\destinityRaid\RaidStatsManager.class
 it\samuconfaa\destinityRaid\ConfigurationManager$DefaultKitArmor.class
+it\samuconfaa\destinityRaid\RaidPlaceholders.class
 it\samuconfaa\destinityRaid\RaidCommand.class
+it\samuconfaa\destinityRaid\ResetStatsCommand.class
 it\samuconfaa\destinityRaid\ConfigurationManager.class
+it\samuconfaa\destinityRaid\RaidStatsManager$PlayerRankingEntry.class
 it\samuconfaa\destinityRaid\KitGUI$KitEditSession.class
 it\samuconfaa\destinityRaid\ConfigurationManager$WorldInfo.class
 it\samuconfaa\destinityRaid\PartyManager.class
