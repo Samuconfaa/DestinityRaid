@@ -177,7 +177,7 @@ public class KitGUI implements Listener {
     }
 
     /**
-     * Apre l'editor del kit
+     * Apre l'editor del kit - VERSIONE CORRETTA
      */
     public void openKitEditor(Player player) {
         // Crea una sessione di editing con backup dell'inventario attuale
@@ -187,13 +187,16 @@ public class KitGUI implements Listener {
         Inventory gui = Bukkit.createInventory(null, 54, ChatColor.DARK_GREEN + "⚒ Editor Kit - " + ChatColor.GOLD + player.getName());
 
         // Se il giocatore ha un kit salvato, caricalo nell'editor
-        // Altrimenti usa l'inventario attuale
         if (plugin.getKitManager().hasPlayerKit(player)) {
             loadSavedKitIntoEditor(player, gui);
             player.sendMessage(ChatColor.GREEN + "✓ Il tuo kit salvato è stato caricato nell'editor!");
         } else {
-            copyPlayerInventoryToGUI(player, gui);
-            player.sendMessage(ChatColor.GOLD + "✓ Il tuo inventario attuale è stato copiato nell'editor.");
+            // Se non ha un kit salvato, l'editor rimane vuoto
+            // Pulisci completamente la GUI (esclusi i bottoni di controllo)
+            for (int i = 0; i < 50; i++) {
+                gui.setItem(i, null);
+            }
+            player.sendMessage(ChatColor.YELLOW + "✓ Editor aperto - Nessun kit salvato, inizia da zero!");
         }
 
         // Bottoni di controllo
