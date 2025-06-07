@@ -205,8 +205,8 @@ public class KitManager {
      * Utilizzato quando un giocatore entra per la prima volta
      */
     public void giveAndSaveDefaultKit(Player player) {
-        // Applica il kit predefinito
-        giveDefaultKit(player);
+
+
 
         // Salva automaticamente il kit appena applicato
         if (ConfigurationManager.isDefaultKitEnabled()) {
