@@ -16,6 +16,8 @@ import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.block.Action;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+
+import java.util.List;
 import java.util.Map;
 
 public class PlayerListener implements Listener {
@@ -150,6 +152,44 @@ public class PlayerListener implements Listener {
 
                             // Teletrasporta tutti i membri del party al mondo hub
                             teleportPartyToHub(partyLeader);
+
+                            // NUOVO: Ripristina il mondo dal backup in modo asincrono
+                            plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
+                                plugin.getLogger().info("Iniziando ripristino mondo per: " + occupiedWorld);
+
+                                // Informa i giocatori che il mondo sta per essere ripristinato
+                                List<Player> partyMembers = plugin.getPartyManager().getPartyMembers(partyLeader);
+                                for (Player member : partyMembers) {
+                                    if (member != null && member.isOnline()) {
+                                        member.sendMessage(ChatColor.YELLOW + "🔄 Ripristinando il mondo raid...");
+                                    }
+                                }
+
+                                if (plugin.getWorldBackupManager().restoreWorldFromBackup(occupiedWorld)) {
+                                    plugin.getLogger().info("Mondo ripristinato con successo: " + occupiedWorld);
+
+                                    // Notifica i giocatori del successo
+                                    plugin.getServer().getScheduler().runTask(plugin, () -> {
+                                        for (Player member : partyMembers) {
+                                            if (member != null && member.isOnline()) {
+                                                member.sendMessage(ChatColor.GREEN + "✅ Mondo raid ripristinato completamente!");
+                                            }
+                                        }
+                                    });
+                                } else {
+                                    plugin.getLogger().severe("Errore durante il ripristino del mondo: " + occupiedWorld);
+
+                                    // Notifica gli amministratori dell'errore
+                                    plugin.getServer().getScheduler().runTask(plugin, () -> {
+                                        for (Player member : partyMembers) {
+                                            if (member != null && member.isOnline()) {
+                                                member.sendMessage(ChatColor.RED + "⚠ Errore durante il ripristino del mondo!");
+                                                member.sendMessage(ChatColor.RED + "Contatta un amministratore.");
+                                            }
+                                        }
+                                    });
+                                }
+                            });
                         }
                     }
                 }
@@ -165,11 +205,23 @@ public class PlayerListener implements Listener {
             // Segna il raid come interrotto
             plugin.getRaidStatsManager().endRaid(player, occupiedWorld);
             plugin.getWorldManager().freeWorld(occupiedWorld);
+
+            // NUOVO: Ripristina il mondo dal backup se il leader abbandona
+            plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
+                plugin.getLogger().info("Leader abbandonato - ripristinando mondo: " + occupiedWorld);
+
+                if (plugin.getWorldBackupManager().restoreWorldFromBackup(occupiedWorld)) {
+                    plugin.getLogger().info("Mondo ripristinato dopo abbandono: " + occupiedWorld);
+                } else {
+                    plugin.getLogger().severe("Errore ripristino mondo dopo abbandono: " + occupiedWorld);
+                    // In caso di errore, almeno pulisci il backup
+                    plugin.getWorldBackupManager().cleanupBackup(occupiedWorld);
+                }
+            });
         }
 
         // Pulisci i dati del DeathManager
         plugin.getDeathManager().onPlayerQuit(player);
-
     }
 
     // Previeni il drop della Nether Star

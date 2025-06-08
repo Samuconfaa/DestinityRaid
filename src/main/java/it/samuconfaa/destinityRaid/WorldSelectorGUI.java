@@ -256,6 +256,15 @@ public class WorldSelectorGUI implements Listener {
             return false;
         }
 
+        // NUOVO: Crea backup del mondo prima di iniziare il raid
+        leader.sendMessage(ChatColor.YELLOW + "⏳ Creando backup del mondo...");
+        if (!plugin.getWorldBackupManager().createWorldBackup(worldKey)) {
+            leader.sendMessage(ChatColor.RED + "❌ Errore durante la creazione del backup!");
+            leader.sendMessage(ChatColor.RED + "Raid annullato per sicurezza.");
+            return false;
+        }
+        leader.sendMessage(ChatColor.GREEN + "✓ Backup creato con successo!");
+
         Location spawnLocation = new Location(world, worldInfo.getSpawnX(), worldInfo.getSpawnY(), worldInfo.getSpawnZ());
 
         // Occupa il mondo

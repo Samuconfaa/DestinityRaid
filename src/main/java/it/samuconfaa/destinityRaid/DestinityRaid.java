@@ -10,6 +10,7 @@ public final class DestinityRaid extends JavaPlugin {
     private PartyManager partyManager;
     private DeathManager deathManager;
     private KitManager kitManager;
+    private WorldBackupManager worldBackupManager; // NUOVO
     private static DestinityRaid instance;
     private KitGUI kitGUI;
 
@@ -24,6 +25,7 @@ public final class DestinityRaid extends JavaPlugin {
         partyManager = new PartyManager(this);
         deathManager = new DeathManager(this);
         kitManager = new KitManager(this);
+        worldBackupManager = new WorldBackupManager(this); // NUOVO
         this.kitManager = new KitManager(this);
         this.kitGUI = new KitGUI(this);
 
@@ -53,6 +55,15 @@ public final class DestinityRaid extends JavaPlugin {
         if (raidStatsManager != null) {
             raidStatsManager.saveStats();
         }
+
+        // NUOVO: Pulisci tutti i backup attivi al shutdown del plugin
+        if (worldBackupManager != null) {
+            for (String worldKey : worldBackupManager.getActiveBackups().keySet()) {
+                worldBackupManager.cleanupBackup(worldKey);
+                getLogger().info("Backup pulito per il mondo: " + worldKey);
+            }
+        }
+
         getLogger().info("DestinityRaid plugin disabilitato!");
     }
 
@@ -84,4 +95,8 @@ public final class DestinityRaid extends JavaPlugin {
         return kitGUI;
     }
 
+    // NUOVO GETTER
+    public WorldBackupManager getWorldBackupManager() {
+        return worldBackupManager;
+    }
 }
