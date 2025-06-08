@@ -153,33 +153,41 @@ public class PlayerListener implements Listener {
                             // Teletrasporta tutti i membri del party al mondo hub
                             teleportPartyToHub(partyLeader);
 
-                            // NUOVO: Ripristina il mondo dal backup in modo asincrono
+                            // NUOVO: Ripristina il mondo dal backup con gestione corretta dei thread
                             plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
                                 plugin.getLogger().info("Iniziando ripristino mondo per: " + occupiedWorld);
 
                                 // Informa i giocatori che il mondo sta per essere ripristinato
                                 List<Player> partyMembers = plugin.getPartyManager().getPartyMembers(partyLeader);
-                                for (Player member : partyMembers) {
-                                    if (member != null && member.isOnline()) {
-                                        member.sendMessage(ChatColor.YELLOW + "🔄 Ripristinando il mondo raid...");
+
+                                // Notifica i giocatori (nel thread principale)
+                                plugin.getServer().getScheduler().runTask(plugin, () -> {
+                                    for (Player member : partyMembers) {
+                                        if (member != null && member.isOnline()) {
+                                            member.sendMessage(ChatColor.YELLOW + "🔄 Ripristinando il mondo raid...");
+                                        }
                                     }
-                                }
+                                });
 
-                                if (plugin.getWorldBackupManager().restoreWorldFromBackup(occupiedWorld)) {
-                                    plugin.getLogger().info("Mondo ripristinato con successo: " + occupiedWorld);
+                                // Avvia il processo di ripristino (che ora gestisce i thread correttamente)
+                                boolean success = plugin.getWorldBackupManager().restoreWorldFromBackup(occupiedWorld);
 
-                                    // Notifica i giocatori del successo
-                                    plugin.getServer().getScheduler().runTask(plugin, () -> {
+                                if (success) {
+                                    plugin.getLogger().info("Processo di ripristino avviato per: " + occupiedWorld);
+
+                                    // Notifica finale dopo un po' di tempo (nel thread principale)
+                                    plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
                                         for (Player member : partyMembers) {
                                             if (member != null && member.isOnline()) {
                                                 member.sendMessage(ChatColor.GREEN + "✅ Mondo raid ripristinato completamente!");
                                             }
                                         }
-                                    });
-                                } else {
-                                    plugin.getLogger().severe("Errore durante il ripristino del mondo: " + occupiedWorld);
+                                    }, 200L); // 10 secondi dopo
 
-                                    // Notifica gli amministratori dell'errore
+                                } else {
+                                    plugin.getLogger().severe("Errore durante l'avvio del ripristino del mondo: " + occupiedWorld);
+
+                                    // Notifica errore (nel thread principale)
                                     plugin.getServer().getScheduler().runTask(plugin, () -> {
                                         for (Player member : partyMembers) {
                                             if (member != null && member.isOnline()) {

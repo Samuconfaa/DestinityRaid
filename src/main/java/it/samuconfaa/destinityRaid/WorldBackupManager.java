@@ -123,49 +123,73 @@ public class WorldBackupManager {
         try {
             plugin.getLogger().info("Iniziando il ripristino del mondo " + worldName + "...");
 
-            // Salva il mondo corrente prima del ripristino
+            // FASE 1: Preparazione (thread principale)
             Bukkit.getScheduler().runTask(plugin, () -> {
-                world.save();
+                try {
+                    // Salva il mondo corrente
+                    world.save();
+
+                    // Teletrasporta tutti i giocatori nel mondo hub
+                    teleportAllPlayersToHub(world);
+
+                    // FASE 2: Aspetta e poi procedi con unload/restore (thread principale)
+                    Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                        try {
+                            // Unload del mondo (DEVE essere nel thread principale)
+                            plugin.getLogger().info("Scaricando il mondo " + worldName + "...");
+                            if (!Bukkit.unloadWorld(world, false)) {
+                                plugin.getLogger().warning("Impossibile scaricare il mondo " + worldName);
+                                return;
+                            }
+
+                            // FASE 3: Operazioni su file system (thread asincrono)
+                            Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+                                try {
+                                    // Elimina la cartella del mondo corrente
+                                    File worldFolder = new File(Bukkit.getWorldContainer(), worldName);
+                                    if (worldFolder.exists()) {
+                                        plugin.getLogger().info("Eliminando la cartella del mondo corrente...");
+                                        deleteDirectory(worldFolder);
+                                    }
+
+                                    // Ripristina dal backup
+                                    plugin.getLogger().info("Ripristinando dal backup...");
+                                    copyDirectory(backupDir.toPath(), worldFolder.toPath());
+
+                                    // FASE 4: Ricarica mondo (thread principale)
+                                    Bukkit.getScheduler().runTask(plugin, () -> {
+                                        try {
+                                            // Ricarica il mondo (DEVE essere nel thread principale)
+                                            plugin.getLogger().info("Ricaricando il mondo " + worldName + "...");
+                                            Bukkit.createWorld(new org.bukkit.WorldCreator(worldName));
+
+                                            // Pulisci il backup
+                                            deleteDirectory(backupDir);
+                                            activeBackups.remove(worldKey);
+
+                                            plugin.getLogger().info("Mondo " + worldName + " ripristinato con successo!");
+
+                                        } catch (Exception e) {
+                                            plugin.getLogger().log(Level.SEVERE, "Errore durante il ricaricamento del mondo " + worldName, e);
+                                        }
+                                    });
+
+                                } catch (Exception e) {
+                                    plugin.getLogger().log(Level.SEVERE, "Errore durante le operazioni su file system per " + worldName, e);
+                                }
+                            });
+
+                        } catch (Exception e) {
+                            plugin.getLogger().log(Level.SEVERE, "Errore durante l'unload del mondo " + worldName, e);
+                        }
+                    }, 40L); // Aspetta 2 secondi (40 tick) prima di procedere
+
+                } catch (Exception e) {
+                    plugin.getLogger().log(Level.SEVERE, "Errore durante la preparazione del ripristino per " + worldName, e);
+                }
             });
 
-
-            // Teletrasporta tutti i giocatori nel mondo hub prima di procedere
-            teleportAllPlayersToHub(world);
-
-            // Aspetta un momento per assicurarsi che tutti i giocatori siano stati teletrasportati
-            Thread.sleep(2000);
-
-            // Unload del mondo
-            plugin.getLogger().info("Scaricando il mondo " + worldName + "...");
-            if (!Bukkit.unloadWorld(world, false)) {
-                plugin.getLogger().warning("Impossibile scaricare il mondo " + worldName +
-                        ", procedendo comunque con il ripristino...");
-            }
-
-            // Aspetta che il mondo sia completamente scaricato
-            Thread.sleep(3000);
-
-            // Elimina la cartella del mondo corrente
-            File worldFolder = new File(Bukkit.getWorldContainer(), worldName);
-            if (worldFolder.exists()) {
-                plugin.getLogger().info("Eliminando la cartella del mondo corrente...");
-                deleteDirectory(worldFolder);
-            }
-
-            // Ripristina dal backup
-            plugin.getLogger().info("Ripristinando dal backup...");
-            copyDirectory(backupDir.toPath(), worldFolder.toPath());
-
-            // Ricarica il mondo
-            plugin.getLogger().info("Ricaricando il mondo " + worldName + "...");
-            Bukkit.createWorld(new org.bukkit.WorldCreator(worldName));
-
-            // Pulisci il backup
-            deleteDirectory(backupDir);
-            activeBackups.remove(worldKey);
-
-            plugin.getLogger().info("Mondo " + worldName + " ripristinato con successo!");
-            return true;
+            return true; // Restituisce true perché il processo è iniziato con successo
 
         } catch (Exception e) {
             plugin.getLogger().log(Level.SEVERE, "Errore durante il ripristino del mondo " + worldName, e);
