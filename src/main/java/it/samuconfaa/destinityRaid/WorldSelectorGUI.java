@@ -5,6 +5,8 @@ import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
+import org.bukkit.entity.Entity;
+import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -265,6 +267,17 @@ public class WorldSelectorGUI implements Listener {
         }
         leader.sendMessage(ChatColor.GREEN + "✓ Backup creato con successo!");
 
+        // NUOVO: Elimina tutte le entità nel mondo (eccetto i giocatori)
+        leader.sendMessage(ChatColor.YELLOW + "⏳ Eliminando entità nel mondo...");
+        killAllEntitiesInWorld(world);
+        leader.sendMessage(ChatColor.GREEN + "✓ Entità eliminate con successo!");
+
+        // NUOVO: Esegui comando /attivaspawner tramite console
+        leader.sendMessage(ChatColor.YELLOW + "⏳ Attivando spawner...");
+        String command = "attivaspawner " + worldInfo.getWorldName();
+        Bukkit.getServer().dispatchCommand(Bukkit.getConsoleSender(), command);
+        leader.sendMessage(ChatColor.GREEN + "✓ Spawner attivati con successo!");
+
         Location spawnLocation = new Location(world, worldInfo.getSpawnX(), worldInfo.getSpawnY(), worldInfo.getSpawnZ());
 
         // Occupa il mondo
@@ -296,5 +309,28 @@ public class WorldSelectorGUI implements Listener {
         }
 
         return true;
+    }
+
+    /**
+     * Elimina tutte le entità nel mondo specificato, eccetto i giocatori
+     * @param world Il mondo in cui eliminare le entità
+     */
+    private void killAllEntitiesInWorld(World world) {
+        List<Entity> entitiesToRemove = new ArrayList<>();
+
+        // Raccogli tutte le entità che non sono giocatori
+        for (Entity entity : world.getEntities()) {
+            if (entity.getType() != EntityType.PLAYER) {
+                entitiesToRemove.add(entity);
+            }
+        }
+
+        // Rimuovi tutte le entità raccolte
+        for (Entity entity : entitiesToRemove) {
+            entity.remove();
+        }
+
+        // Log per debug (opzionale)
+        plugin.getLogger().info("Eliminate " + entitiesToRemove.size() + " entità nel mondo " + world.getName());
     }
 }
