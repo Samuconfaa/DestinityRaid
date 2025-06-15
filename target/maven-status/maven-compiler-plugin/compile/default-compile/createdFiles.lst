@@ -18,5 +18,6 @@ it\samuconfaa\destinityRaid\RaidStatsManager.class
 it\samuconfaa\destinityRaid\ConfigurationManager$DefaultKitArmor.class
 it\samuconfaa\destinityRaid\RaidCommand.class
 it\samuconfaa\destinityRaid\ResetStatsCommand.class
+it\samuconfaa\destinityRaid\WorldSelectorGUI$1.class
 it\samuconfaa\destinityRaid\ConfigurationManager.class
 it\samuconfaa\destinityRaid\PartyManager.class

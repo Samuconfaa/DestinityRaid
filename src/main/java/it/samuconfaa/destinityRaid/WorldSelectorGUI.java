@@ -14,13 +14,18 @@ import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.scheduler.BukkitRunnable;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class WorldSelectorGUI implements Listener {
     private final DestinityRaid plugin;
+    // Set per tenere traccia dei mondi in fase di caricamento backup
+    private final Set<String> worldsLoadingBackup = ConcurrentHashMap.newKeySet();
 
     public WorldSelectorGUI(DestinityRaid plugin) {
         this.plugin = plugin;
@@ -67,8 +72,9 @@ public class WorldSelectorGUI implements Listener {
             String worldKey = entry.getKey();
             ConfigurationManager.WorldInfo worldInfo = entry.getValue();
             boolean isOccupied = plugin.getWorldManager().isWorldOccupied(worldKey);
+            boolean isLoadingBackup = worldsLoadingBackup.contains(worldKey);
 
-            ItemStack item = createWorldItem(worldInfo, isOccupied);
+            ItemStack item = createWorldItem(worldInfo, isOccupied, isLoadingBackup);
             gui.setItem(worldSlots[slotIndex], item);
             slotIndex++;
         }
@@ -104,11 +110,28 @@ public class WorldSelectorGUI implements Listener {
         return item;
     }
 
-    private ItemStack createWorldItem(ConfigurationManager.WorldInfo worldInfo, boolean isOccupied) {
+    private ItemStack createWorldItem(ConfigurationManager.WorldInfo worldInfo, boolean isOccupied, boolean isLoadingBackup) {
         ItemStack item;
         List<String> lore = new ArrayList<>();
 
-        if (isOccupied) {
+        if (isLoadingBackup) {
+            // Mondo in caricamento backup - lana arancione
+            item = new ItemStack(Material.ORANGE_WOOL);
+            ItemMeta meta = item.getItemMeta();
+            if (meta != null) {
+                meta.setDisplayName(ChatColor.GOLD + "⏳ " + worldInfo.getDisplayName() + ChatColor.GOLD + " ⏳");
+                lore.add(ChatColor.GRAY + "Mondo: " + ChatColor.WHITE + worldInfo.getWorldName());
+                lore.add("");
+                lore.add(ChatColor.GOLD + "⏳ CARICAMENTO BACKUP ⏳");
+                lore.add(ChatColor.GRAY + "Il sistema sta preparando");
+                lore.add(ChatColor.GRAY + "il mondo per il raid...");
+                lore.add("");
+                lore.add(ChatColor.YELLOW + "🔄 Attendere prego");
+                lore.add(ChatColor.DARK_GRAY + "⚠ Temporaneamente non disponibile");
+                meta.setLore(lore);
+                item.setItemMeta(meta);
+            }
+        } else if (isOccupied) {
             // Mondo occupato - lana rossa
             item = new ItemStack(Material.RED_WOOL);
             ItemMeta meta = item.getItemMeta();
@@ -178,6 +201,13 @@ public class WorldSelectorGUI implements Listener {
             return;
         }
 
+        // Se ha cliccato su un mondo in caricamento backup (lana arancione)
+        if (clickedItem.getType() == Material.ORANGE_WOOL) {
+            player.sendMessage(ChatColor.GOLD + "⏳ Il sistema sta caricando il backup per questo mondo...");
+            player.sendMessage(ChatColor.YELLOW + "Attendere che il processo sia completato prima di entrare.");
+            return;
+        }
+
         // Se ha cliccato su un mondo occupato (lana rossa)
         if (clickedItem.getType() == Material.RED_WOOL) {
             player.sendMessage(ChatColor.RED + "⚠ Questo mondo è già occupato da altri giocatori!");
@@ -210,7 +240,9 @@ public class WorldSelectorGUI implements Listener {
 
         String displayName = ChatColor.stripColor(item.getItemMeta().getDisplayName());
         // Rimuovi i simboli decorativi per il confronto
-        displayName = displayName.replace("✓ ", "").replace(" ✓", "").replace("✗ ", "").replace(" ✗", "");
+        displayName = displayName.replace("✓ ", "").replace(" ✓", "")
+                .replace("✗ ", "").replace(" ✗", "")
+                .replace("⏳ ", "").replace(" ⏳", "");
 
         Map<String, ConfigurationManager.WorldInfo> worlds = ConfigurationManager.getWorlds();
 
@@ -223,23 +255,32 @@ public class WorldSelectorGUI implements Listener {
     }
 
     private boolean attemptRaidStart(Player player, String worldKey) {
-        // Controlla se il mondo è disponibile
+        // PRIMO: Controlla se il mondo è in caricamento backup
+        if (worldsLoadingBackup.contains(worldKey)) {
+            player.sendMessage(ChatColor.GOLD + "⏳ Il sistema sta ancora caricando il backup per questo mondo!");
+            return false;
+        }
+
+        // SECONDO: Controlla se il mondo è disponibile
         if (plugin.getWorldManager().isWorldOccupied(worldKey)) {
             player.sendMessage(ChatColor.RED + "⚠ Questo mondo è già occupato!");
             return false;
         }
 
-        // Controlli per i party utilizzando il metodo di validazione integrato
+        // TERZO: Controlli per i party utilizzando il metodo di validazione integrato
         String partyValidationError = plugin.getPartyManager().validatePartyForRaid(player);
         if (partyValidationError != null) {
             player.sendMessage(partyValidationError);
             return false;
         }
 
-        // Ottieni i membri del party (se Parties è abilitato) o solo il giocatore
+        // QUARTO: OCCUPA IMMEDIATAMENTE IL MONDO per evitare conflitti
+        plugin.getWorldManager().occupyWorld(worldKey, player);
+
+        // QUINTO: Ottieni i membri del party (se Parties è abilitato) o solo il giocatore
         List<Player> partyMembers = plugin.getPartyManager().getPartyMembers(player);
 
-        // Teletrasporta il giocatore/party
+        // SESTO: Teletrasporta il giocatore/party (gestione asincrona del backup)
         return teleportPlayersToWorld(player, worldKey, partyMembers);
     }
 
@@ -249,66 +290,112 @@ public class WorldSelectorGUI implements Listener {
 
         if (worldInfo == null) {
             leader.sendMessage(ChatColor.RED + "❌ Errore: Configurazione mondo non trovata!");
+            // Libera il mondo in caso di errore
+            plugin.getWorldManager().freeWorld(worldKey);
             return false;
         }
 
         World world = Bukkit.getWorld(worldInfo.getWorldName());
         if (world == null) {
             leader.sendMessage(ChatColor.RED + "❌ Errore: Mondo non trovato sul server!");
+            // Libera il mondo in caso di errore
+            plugin.getWorldManager().freeWorld(worldKey);
             return false;
         }
 
-        // NUOVO: Crea backup del mondo prima di iniziare il raid
-        leader.sendMessage(ChatColor.YELLOW + "⏳ Creando backup del mondo...");
-        if (!plugin.getWorldBackupManager().createWorldBackup(worldKey)) {
-            leader.sendMessage(ChatColor.RED + "❌ Errore durante la creazione del backup!");
-            leader.sendMessage(ChatColor.RED + "Raid annullato per sicurezza.");
-            return false;
-        }
-        leader.sendMessage(ChatColor.GREEN + "✓ Backup creato con successo!");
+        // Imposta il mondo come "in caricamento backup"
+        worldsLoadingBackup.add(worldKey);
 
-        // NUOVO: Elimina tutte le entità nel mondo (eccetto i giocatori)
-        leader.sendMessage(ChatColor.YELLOW + "⏳ Eliminando entità nel mondo...");
-        killAllEntitiesInWorld(world);
-        leader.sendMessage(ChatColor.GREEN + "✓ Entità eliminate con successo!");
-
-        // NUOVO: Esegui comando /attivaspawner tramite console
-        leader.sendMessage(ChatColor.YELLOW + "⏳ Attivando spawner...");
-        String command = "attivaspawner " + worldInfo.getWorldName();
-        Bukkit.getServer().dispatchCommand(Bukkit.getConsoleSender(), command);
-        leader.sendMessage(ChatColor.GREEN + "✓ Spawner attivati con successo!");
-
-        Location spawnLocation = new Location(world, worldInfo.getSpawnX(), worldInfo.getSpawnY(), worldInfo.getSpawnZ());
-
-        // Occupa il mondo
-        plugin.getWorldManager().occupyWorld(worldKey, leader);
-
-        // Inizia il raid
-        plugin.getRaidStatsManager().startRaid(leader, worldKey);
-
-        // Teletrasporta e prepara tutti i giocatori
+        // Informa i giocatori che il processo è iniziato
         for (Player player : players) {
             if (player != null && player.isOnline()) {
-                player.teleport(spawnLocation);
-
-                // Inizializza il sistema di morti per il raid
-                plugin.getDeathManager().onRaidStart(player);
-
-                // PRIMA svuota l'inventario, POI equipaggia il kit del giocatore
-                player.getInventory().clear();
-                player.getInventory().setArmorContents(new ItemStack[4]);
-
-                // Carica il kit personalizzato del giocatore (ora ogni player ha il suo kit)
-                plugin.getKitManager().loadPlayerKit(player);
-
-                player.sendMessage(ChatColor.GREEN + "✦ Raid iniziato in " + worldInfo.getDisplayName() + "! ✦");
-                player.sendMessage(ChatColor.YELLOW + "⚔ Il tuo kit personalizzato è stato equipaggiato!");
-                player.sendMessage(ChatColor.GOLD + "⚠ Ricorda: hai solo 2 vite, poi diventerai spettatore!");
-                player.sendMessage(ChatColor.AQUA + "➤ Buona fortuna, guerriero!");
+                player.sendMessage(ChatColor.YELLOW + "⏳ Inizializzazione del mondo in corso...");
+                player.sendMessage(ChatColor.GRAY + "Questo processo potrebbe richiedere alcuni secondi.");
             }
         }
 
+        // Esegui il backup nel thread principale, poi continua
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                try {
+                    // Crea backup del mondo (nel thread principale)
+                    if (!plugin.getWorldBackupManager().createWorldBackup(worldKey)) {
+                        worldsLoadingBackup.remove(worldKey);
+                        plugin.getWorldManager().freeWorld(worldKey);
+                        leader.sendMessage(ChatColor.RED + "❌ Errore durante la creazione del backup!");
+                        leader.sendMessage(ChatColor.RED + "Raid annullato per sicurezza.");
+                        return;
+                    }
+
+                    // Continua con il setup del mondo
+                    completeWorldSetup(leader, worldKey, worldInfo, world, players);
+
+                } catch (Exception e) {
+                    // Gestione errori
+                    worldsLoadingBackup.remove(worldKey);
+                    plugin.getWorldManager().freeWorld(worldKey);
+                    leader.sendMessage(ChatColor.RED + "❌ Errore durante l'inizializzazione del mondo!");
+                    plugin.getLogger().severe("Errore durante il backup del mondo " + worldKey + ": " + e.getMessage());
+                }
+            }
+        }.runTask(plugin);
+
         return true;
+    }
+
+    private void completeWorldSetup(Player leader, String worldKey, ConfigurationManager.WorldInfo worldInfo, World world, List<Player> players) {
+        try {
+            // Rimuovi il mondo dalla lista di caricamento
+            worldsLoadingBackup.remove(worldKey);
+
+            leader.sendMessage(ChatColor.GREEN + "✓ Backup creato con successo!");
+
+            // Elimina tutte le entità nel mondo (eccetto i giocatori)
+            leader.sendMessage(ChatColor.YELLOW + "⏳ Eliminando entità nel mondo...");
+            killAllEntitiesInWorld(world);
+            leader.sendMessage(ChatColor.GREEN + "✓ Entità eliminate con successo!");
+
+            // Esegui comando /attivaspawner tramite console
+            leader.sendMessage(ChatColor.YELLOW + "⏳ Attivando spawner...");
+            String command = "attivaspawner " + worldInfo.getWorldName();
+            Bukkit.getServer().dispatchCommand(Bukkit.getConsoleSender(), command);
+            leader.sendMessage(ChatColor.GREEN + "✓ Spawner attivati con successo!");
+
+            Location spawnLocation = new Location(world, worldInfo.getSpawnX(), worldInfo.getSpawnY(), worldInfo.getSpawnZ());
+
+            // Inizia il raid
+            plugin.getRaidStatsManager().startRaid(leader, worldKey);
+
+            // Teletrasporta e prepara tutti i giocatori
+            for (Player player : players) {
+                if (player != null && player.isOnline()) {
+                    player.teleport(spawnLocation);
+
+                    // Inizializza il sistema di morti per il raid
+                    plugin.getDeathManager().onRaidStart(player);
+
+                    // PRIMA svuota l'inventario, POI equipaggia il kit del giocatore
+                    player.getInventory().clear();
+                    player.getInventory().setArmorContents(new ItemStack[4]);
+
+                    // Carica il kit personalizzato del giocatore
+                    plugin.getKitManager().loadPlayerKit(player);
+
+                    player.sendMessage(ChatColor.GREEN + "✦ Raid iniziato in " + worldInfo.getDisplayName() + "! ✦");
+                    player.sendMessage(ChatColor.YELLOW + "⚔ Il tuo kit personalizzato è stato equipaggiato!");
+                    player.sendMessage(ChatColor.GOLD + "⚠ Ricorda: hai solo 2 vite, poi diventerai spettatore!");
+                    player.sendMessage(ChatColor.AQUA + "➤ Buona fortuna, guerriero!");
+                }
+            }
+
+        } catch (Exception e) {
+            // In caso di errore, libera il mondo
+            worldsLoadingBackup.remove(worldKey);
+            plugin.getWorldManager().freeWorld(worldKey);
+            leader.sendMessage(ChatColor.RED + "❌ Errore durante la configurazione del mondo!");
+            plugin.getLogger().severe("Errore durante la configurazione del mondo " + worldKey + ": " + e.getMessage());
+        }
     }
 
     /**
@@ -330,7 +417,25 @@ public class WorldSelectorGUI implements Listener {
             entity.remove();
         }
 
-        // Log per debug (opzionale)
+        // Log per debug
         plugin.getLogger().info("Eliminate " + entitiesToRemove.size() + " entità nel mondo " + world.getName());
+    }
+
+    /**
+     * Metodo per verificare se un mondo è in caricamento backup (utile per altre classi)
+     * @param worldKey La chiave del mondo
+     * @return true se il mondo è in caricamento backup
+     */
+    public boolean isWorldLoadingBackup(String worldKey) {
+        return worldsLoadingBackup.contains(worldKey);
+    }
+
+    /**
+     * Metodo per rimuovere forzatamente un mondo dalla lista di caricamento
+     * (utile in caso di crash o problemi)
+     * @param worldKey La chiave del mondo
+     */
+    public void forceRemoveFromLoading(String worldKey) {
+        worldsLoadingBackup.remove(worldKey);
     }
 }
