@@ -380,18 +380,23 @@ public class PlayerListener implements Listener {
             }
         }
 
-        // Poi esegui i comandi specifici del mondo
+        // Esegui i comandi specifici del mondo dopo 5 secondi (100 ticks)
         java.util.List<String> worldCommands = ConfigurationManager.getConsoleCommands(worldKey);
         if (worldCommands != null && !worldCommands.isEmpty()) {
-            for (String command : worldCommands) {
-                String processedCommand = command
-                        .replace("{player}", player.getName())
-                        .replace("{world}", worldKey)
-                        .replace("{uuid}", player.getUniqueId().toString());
+            plugin.getServer().getScheduler().runTaskLater(plugin, new Runnable() {
+                @Override
+                public void run() {
+                    for (String command : worldCommands) {
+                        String processedCommand = command
+                                .replace("{player}", player.getName())
+                                .replace("{world}", worldKey)
+                                .replace("{uuid}", player.getUniqueId().toString());
 
-                plugin.getServer().dispatchCommand(plugin.getServer().getConsoleSender(), processedCommand);
-                plugin.getLogger().info("Comando mondo eseguito: " + processedCommand);
-            }
+                        plugin.getServer().dispatchCommand(plugin.getServer().getConsoleSender(), processedCommand);
+                        plugin.getLogger().info("Comando mondo eseguito (dopo 5 secondi): " + processedCommand);
+                    }
+                }
+            }, 100L); // 100 ticks = 5 secondi (20 ticks per secondo)
         }
     }
 
