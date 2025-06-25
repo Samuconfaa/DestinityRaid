@@ -341,6 +341,8 @@ public class WorldSelectorGUI implements Listener {
             }
         }.runTask(plugin);
 
+
+
         return true;
     }
 
@@ -371,6 +373,10 @@ public class WorldSelectorGUI implements Listener {
             for (Player player : players) {
                 if (player != null && player.isOnline()) {
                     player.teleport(spawnLocation);
+                    player.heal(100);
+                    player.setFoodLevel(20);
+                    player.setSaturation(20f);
+
 
                     // Inizializza il sistema di morti per il raid
                     plugin.getDeathManager().onRaidStart(player);

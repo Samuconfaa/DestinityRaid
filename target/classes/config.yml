@@ -51,7 +51,6 @@ default_kit:
 # Placeholder disponibili: {player}, {world}, {uuid}
 global_console_commands:
   - "say {player} ha completato un raid nel mondo {world}!"
-  - "give {player} minecraft:diamond 5"
 
 # Configurazione dei mondi
 worlds:
