@@ -39,12 +39,6 @@ public final class DestinityRaid extends JavaPlugin {
         getCommand("stats").setExecutor(new StatsCommand(this));
 
 
-        if (Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null) {
-            new RaidPlaceholders(this).register();
-            getLogger().info("PlaceholderAPI expansion registered!");
-        } else {
-            getLogger().warning("PlaceholderAPI not found!");
-        }
         getLogger().info("DestinityRaid plugin abilitato!");
 
 

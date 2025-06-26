@@ -2,8 +2,10 @@ name: DestinityRaid
 version: '${project.version}'
 main: it.samuconfaa.destinityRaid.DestinityRaid
 api-version: '1.20'
-depend: []
-softdepend: [Parties, PlaceholderAPI]
+depend:
+  - PlaceholderAPI
+  - Parties
+softdepend: []
 authors: [SamuConfaa]
 description: Plugin per gestire raid con party e statistiche
 
