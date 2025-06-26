@@ -33,7 +33,7 @@ public class PlayerListener implements Listener {
         String hubWorldName = ConfigurationManager.getHubWorldName();
 
         if (player.getWorld().getName().equals(hubWorldName)) {
-            player.getInventory().clear();
+            
             giveCompass(player);
         }
         if (!player.hasPlayedBefore()) {

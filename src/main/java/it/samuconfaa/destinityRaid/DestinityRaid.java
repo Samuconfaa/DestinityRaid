@@ -13,6 +13,7 @@ public final class DestinityRaid extends JavaPlugin {
     private WorldBackupManager worldBackupManager; // NUOVO
     private static DestinityRaid instance;
     private KitGUI kitGUI;
+    private DestinityRaidPlaceholderExpansion placeholderExpansion;
 
     @Override
     public void onEnable() {
@@ -37,7 +38,7 @@ public final class DestinityRaid extends JavaPlugin {
         getCommand("resetstats").setExecutor(new ResetStatsCommand(this));
         getCommand("leaderboard").setExecutor(new LeaderboardCommand(this));
         getCommand("stats").setExecutor(new StatsCommand(this));
-
+        setupPlaceholders();
 
         getLogger().info("DestinityRaid plugin abilitato!");
 
@@ -58,7 +59,48 @@ public final class DestinityRaid extends JavaPlugin {
             }
         }
 
+        // Gestione sicura dell'unregister dei placeholder
+        if (placeholderExpansion != null) {
+            try {
+                placeholderExpansion.unregister();
+                getLogger().info("PlaceholderAPI expansion unregistered successfully.");
+            } catch (Exception e) {
+                getLogger().warning("Error unregistering PlaceholderAPI expansion: " + e.getMessage());
+            }
+        }
+
         getLogger().info("DestinityRaid plugin disabilitato!");
+    }
+
+    private void setupPlaceholders() {
+        try {
+            // Verifica se PlaceholderAPI è presente e abilitato
+            if (!Bukkit.getPluginManager().isPluginEnabled("PlaceholderAPI")) {
+                getLogger().info("PlaceholderAPI not found, placeholder integration disabled.");
+                return;
+            }
+
+            // Aspetta un tick prima di registrare i placeholder per evitare problemi di inizializzazione
+            Bukkit.getScheduler().runTaskLater(this, () -> {
+                try {
+                    placeholderExpansion = new DestinityRaidPlaceholderExpansion(this);
+
+                    if (placeholderExpansion.register()) {
+                        getLogger().info("PlaceholderAPI integration enabled!");
+                    } else {
+                        getLogger().warning("Failed to register PlaceholderAPI expansion!");
+                        placeholderExpansion = null;
+                    }
+                } catch (Exception e) {
+                    getLogger().severe("Error registering PlaceholderAPI expansion: " + e.getMessage());
+                    placeholderExpansion = null;
+                }
+            }, 1L);
+
+        } catch (Exception e) {
+            getLogger().severe("Error during PlaceholderAPI setup: " + e.getMessage());
+            placeholderExpansion = null;
+        }
     }
 
     public static DestinityRaid getInstance() {
