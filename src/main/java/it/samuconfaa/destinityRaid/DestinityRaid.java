@@ -38,7 +38,7 @@ public final class DestinityRaid extends JavaPlugin {
         getCommand("leaderboard").setExecutor(new LeaderboardCommand(this));
         getCommand("stats").setExecutor(new StatsCommand(this));
 
-        /*
+
         if (Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null) {
             new RaidPlaceholders(this).register();
             getLogger().info("PlaceholderAPI expansion registered!");
@@ -47,7 +47,7 @@ public final class DestinityRaid extends JavaPlugin {
         }
         getLogger().info("DestinityRaid plugin abilitato!");
 
-         */
+
     }
 
     @Override
