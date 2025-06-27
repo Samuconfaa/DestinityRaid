@@ -33,7 +33,7 @@ public class PlayerListener implements Listener {
         String hubWorldName = ConfigurationManager.getHubWorldName();
 
         if (player.getWorld().getName().equals(hubWorldName)) {
-            
+
             giveCompass(player);
         }
         if (!player.hasPlayedBefore()) {
@@ -147,6 +147,13 @@ public class PlayerListener implements Listener {
                             plugin.getRaidStatsManager().endRaid(partyLeader, occupiedWorld);
                             plugin.getWorldManager().freeWorld(occupiedWorld);
 
+                            // NUOVO: Esegui il comando stopspawner sul thread principale
+                            plugin.getServer().getScheduler().runTask(plugin, () -> {
+                                String stopSpawnerCommand = "stopspawner " + worldInfo.getWorldName();
+                                plugin.getServer().dispatchCommand(plugin.getServer().getConsoleSender(), stopSpawnerCommand);
+                                plugin.getLogger().info("Comando stopspawner eseguito: " + stopSpawnerCommand);
+                            });
+
                             // Esegui i comandi della console se configurati
                             executeConsoleCommands(partyLeader, occupiedWorld);
 
@@ -168,6 +175,8 @@ public class PlayerListener implements Listener {
                                         }
                                     }
                                 });
+
+
 
                                 // Avvia il processo di ripristino (che ora gestisce i thread correttamente)
                                 boolean success = plugin.getWorldBackupManager().restoreWorldFromBackup(occupiedWorld);
@@ -213,6 +222,17 @@ public class PlayerListener implements Listener {
             // Segna il raid come interrotto
             plugin.getRaidStatsManager().endRaid(player, occupiedWorld);
             plugin.getWorldManager().freeWorld(occupiedWorld);
+
+            // NUOVO: Esegui stopspawner quando il leader abbandona il raid
+            Map<String, ConfigurationManager.WorldInfo> worlds = ConfigurationManager.getWorlds();
+            ConfigurationManager.WorldInfo worldInfo = worlds.get(occupiedWorld);
+            if (worldInfo != null) {
+                plugin.getServer().getScheduler().runTask(plugin, () -> {
+                    String stopSpawnerCommand = "stopspawner " + worldInfo.getWorldName();
+                    plugin.getServer().dispatchCommand(plugin.getServer().getConsoleSender(), stopSpawnerCommand);
+                    plugin.getLogger().info("Comando stopspawner eseguito dopo abbandono: " + stopSpawnerCommand);
+                });
+            }
 
             // NUOVO: Ripristina il mondo dal backup se il leader abbandona
             plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
