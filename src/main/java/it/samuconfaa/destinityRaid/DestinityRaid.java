@@ -13,6 +13,7 @@ public final class DestinityRaid extends JavaPlugin {
     private WorldBackupManager worldBackupManager; // NUOVO
     private static DestinityRaid instance;
     private KitGUI kitGUI;
+    private  WorldSelectorGUI selectorGUI;
     private DestinityRaidPlaceholderExpansion placeholderExpansion;
 
     @Override
@@ -24,6 +25,7 @@ public final class DestinityRaid extends JavaPlugin {
         worldManager = new WorldManager();
         raidStatsManager = new RaidStatsManager(this);
         partyManager = new PartyManager(this);
+        selectorGUI = new WorldSelectorGUI(this);
         deathManager = new DeathManager(this);
         kitManager = new KitManager(this);
         worldBackupManager = new WorldBackupManager(this); // NUOVO
@@ -38,6 +40,8 @@ public final class DestinityRaid extends JavaPlugin {
         getCommand("resetstats").setExecutor(new ResetStatsCommand(this));
         getCommand("leaderboard").setExecutor(new LeaderboardCommand(this));
         getCommand("stats").setExecutor(new StatsCommand(this));
+        getCommand("raidgui").setExecutor(new RaidGUICommand(this));
+
         setupPlaceholders();
 
         getLogger().info("DestinityRaid plugin abilitato!");
@@ -117,6 +121,10 @@ public final class DestinityRaid extends JavaPlugin {
 
     public PartyManager getPartyManager() {
         return partyManager;
+    }
+
+    public WorldSelectorGUI getSelectorGUI() {
+        return selectorGUI;
     }
 
     public DeathManager getDeathManager() {

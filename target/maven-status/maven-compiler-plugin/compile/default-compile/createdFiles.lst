@@ -9,6 +9,7 @@ it\samuconfaa\destinityRaid\KitGUI$KitEditSession.class
 it\samuconfaa\destinityRaid\ConfigurationManager$WorldInfo.class
 it\samuconfaa\destinityRaid\DestinityRaid.class
 it\samuconfaa\destinityRaid\RaidCommand$RaidInfo.class
+it\samuconfaa\destinityRaid\RaidGUICommand.class
 it\samuconfaa\destinityRaid\DeathManager.class
 it\samuconfaa\destinityRaid\WorldSelectorGUI.class
 it\samuconfaa\destinityRaid\LeaderboardCommand.class

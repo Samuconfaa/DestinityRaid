@@ -44,6 +44,10 @@ commands:
     permission: raid.admin
     permission-message: Non hai il permesso per resettare le statistiche!
 
+  raidgui:
+    description: Apre la GUI di selezione mondi
+    usage: /raidgui
+
 permissions:
   # Permessi base
   raid.use:
